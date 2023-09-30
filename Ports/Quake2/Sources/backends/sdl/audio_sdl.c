@@ -1174,7 +1174,9 @@ qboolean SDL_BackendInit()
 	{
 		return 1;
 	}
-
+	#ifdef __DEBUG
+	return 0;
+	#endif
 	int sndbits = (int)(Cvar_Get("sndbits", "16", CVAR_ARCHIVE))->value;
 	int sndfreq = (int)(Cvar_Get("s_khz", "44", CVAR_ARCHIVE))->value;
 	int sndchans = (int)(Cvar_Get("sndchannels", "2", CVAR_ARCHIVE))->value;

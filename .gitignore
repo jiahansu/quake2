@@ -12,3 +12,6 @@ SDL2-src
 build_rpm/*
 build_aurora_rpm/*
 libogg/*
+.DS_Store
+build
+.vscode
