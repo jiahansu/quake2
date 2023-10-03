@@ -1,4 +1,6 @@
 #include "shader.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 GLuint loadShader(GLenum type, const char *source)
 {
