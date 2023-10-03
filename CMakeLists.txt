@@ -39,7 +39,7 @@ set( COMMON_UNZIP_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/common/u
 set( ZLIB_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Engine/External/Sources/zlib )
 set( SERVER_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/server )
 set( OPENGLES_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Engine/Sources/Compatibility/OpenGLES )
-set( COMPABILITY_SDL_SOURCE_DIR ${PROJECT_SOURCE_DIR}/engine/Sources/Compatibility/SDL )
+set( COMPABILITY_SDL_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Engine/Sources/Compatibility/SDL )
 set( INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 
 set( GAME_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/game )
@@ -108,8 +108,17 @@ target_compile_options(${PROJECT_NAME} PRIVATE -DARCH=\"i386\" -DOSTYPE=\"Linux\
     -Wno-switch -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-sign-compare 
     -Wno-incompatible-pointer-types -Wno-absolute-value -Wno-tautological-constant-out-of-range-compare 
     -Wno-logical-not-parentheses -Wno-pointer-bool-conversion -Wno-int-conversion -Wno-duplicate-decl-specifier
-    -Wno-misleading-indentation -Wno-deprecated-non-prototype -Wno-shift-negative-value -Wno-implicit-fallthrough 
-    -Wno-address -Wno-array-parameter -fPIC -fvisibility=hidden)
+    -Wno-misleading-indentation -Wno-shift-negative-value -Wno-implicit-fallthrough 
+    -Wno-address -fPIC -fvisibility=hidden)
+
+set(CLANG_15 OFF)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")
+        message("Detect CLANG 15")
+        set(CLANG_15 ON)
+        target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-non-prototype -Wno-array-parameter)
+      endif()
+endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation)
