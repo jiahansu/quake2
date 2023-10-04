@@ -1,23 +1,19 @@
-Summary: Simple DirectMedia Layer 2
+Summary: Simple DirectMedia Layer
 Name: SDL2
-Version:    2.0.12+git1
-Release: 1.5.1.jolla
+Version: 2.0.12
+Release: 2
 Source: http://www.libsdl.org/release/%{name}-%{version}.tar.gz
 URL: http://www.libsdl.org/
 License: zlib
-BuildRequires: pkgconfig(wayland-egl)
-BuildRequires: pkgconfig(wayland-client)
-BuildRequires: pkgconfig(wayland-cursor)
-BuildRequires: pkgconfig(wayland-protocols)
-BuildRequires: pkgconfig(wayland-scanner)
-BuildRequires: pkgconfig(egl)
-BuildRequires: pkgconfig(glesv1_cm)
-BuildRequires: pkgconfig(glesv2)
-BuildRequires: pkgconfig(xkbcommon)
-BuildRequires: pkgconfig(libpulse-simple)
+Group: System Environment/Libraries
+BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
+Prefix: %{_prefix}
+%ifos linux
+Provides: libSDL2-2.0.so.0
+%endif
 
-Patch0: sdl2-add-support-for-orientation-in-wayland.patch
-Patch1: sdl2-wayland-input-fix.patch
+%define __defattr %defattr(-,root,root)
+%define __soext so
 
 %description
 This is the Simple DirectMedia Layer, a generic API that provides low
@@ -25,7 +21,8 @@ level access to audio, keyboard, mouse, and display framebuffer across
 multiple platforms.
 
 %package devel
-Summary: Simple DirectMedia Layer 2 - Development libraries
+Summary: Libraries, includes and more to develop SDL applications.
+Group: Development/Libraries
 Requires: %{name} = %{version}
 
 %description devel
@@ -38,50 +35,85 @@ to develop SDL applications.
 
 
 %prep
-%autosetup -p1 -n %{name}-%{version}/%{name}
+%setup -q 
 
 %build
-%configure CFLAGS='-std=c99' --disable-video-x11 --enable-video-wayland --enable-pulseaudio
-make %{?_smp_mflags}
+%ifos linux
+CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} --disable-video-directfb
+%else
+%configure
+%endif
+make
 
 %install
-%make_install
+rm -rf $RPM_BUILD_ROOT
+%ifos linux
+make install prefix=$RPM_BUILD_ROOT%{prefix} \
+             bindir=$RPM_BUILD_ROOT%{_bindir} \
+             libdir=$RPM_BUILD_ROOT%{_libdir} \
+             includedir=$RPM_BUILD_ROOT%{_includedir} \
+             datadir=$RPM_BUILD_ROOT%{_datadir} \
+             mandir=$RPM_BUILD_ROOT%{_mandir}
+%else
+%makeinstall
+%endif
 
-%post
-/sbin/ldconfig
-
-%postun
-/sbin/ldconfig
+%clean
+rm -rf $RPM_BUILD_ROOT
 
 %files
-%defattr(-,root,root,-)
-%{_libdir}/lib*.so.*
+%{__defattr}
+%doc README*.txt COPYING.txt CREDITS.txt BUGS.txt
+%{_libdir}/lib*.%{__soext}.*
 
 %files devel
-%defattr(-,root,root,-)
+%{__defattr}
+%doc docs/README*.md
 %{_bindir}/*-config
-%{_libdir}/lib*.so
-%{_libdir}/cmake/SDL2/*.cmake
+%{_libdir}/lib*.a
+%{_libdir}/lib*.la
+%{_libdir}/lib*.%{__soext}
 %{_includedir}/*/*.h
-%{_libdir}/pkgconfig/*
+%{_libdir}/cmake/*
+%{_libdir}/pkgconfig/SDL2/*
 %{_datadir}/aclocal/*
+
 %changelog
-* Mon May 11 2020 Matti Lehtimäki <matti.lehtimaki@jolla.com> - 2.0.12+git1
-- [sdl] Update to 2.0.12 release. JB#49887
-* Fri May  3 2019 Matti Lehtimäki <matti.lehtimaki@jolla.com> - 2.0.9+git3
-- [sdl] Add upstream patch to not force X11 in EGL. Contributes to JB#37662
-* Fri Mar 29 2019 Matti Lehtimäki <matti.lehtimaki@jolla.com> - 2.0.9+git2
-- [sdl] Update libsdl to 2.0.9. Fixes MER#1920
-* Wed Aug 22 2018 Matti Kosola <matti.kosola@jollamobile.com> - 2.0.3-nemo4
-- [sdl] Fix "unresponsible application" issue. Contributes MER#1934
-* Thu Nov 24 2016 pvuorela <pekka.vuorela@jolla.com> - 2.0.3-nemo3
-- [sdl] Set orientation and window flags via SDL hints. Fixes JB#27386
-* Mon Apr 21 2014 Thomas Perl <m@thp.io> - 2.0.3-nemo2
-- [nemo] Add RPM changes entries from old branch
-- [nemo] Rebased RPM packaging on upstream 2.0.3 tag
-* Fri Apr 18 2014 Thomas Perl <thomas.perl@jolla.com> - 2.0.3-nemo1
-- [nemo] New upstream release 2.0.3
-- [nemo] SDL 2.0.3 RPM packaging
-- [nemo] Wayland: Resize windows with 0x0 requested size to screen size
-* Mon Dec 30 2013 Thomas Perl <thomas.perl@jolla.com> - 2.0.1-nemo2
-- [nemo] Add RPM packaging
+* Thu Jun 04 2015 Ryan C. Gordon <icculus@icculus.org>
+- Fixed README paths.
+
+* Sun Dec 07 2014 Simone Contini <s.contini@oltrelinux.com>
+- Fixed changelog date issue and docs filenames
+
+* Sun Jan 22 2012 Sam Lantinga <slouken@libsdl.org>
+- Updated for SDL 2.0
+
+* Tue May 16 2006 Sam Lantinga <slouken@libsdl.org>
+- Removed support for Darwin, due to build problems on ps2linux
+
+* Sat Jan 03 2004 Anders Bjorklund <afb@algonet.se>
+- Added support for Darwin, updated spec file
+
+* Wed Jan 19 2000 Sam Lantinga <slouken@libsdl.org>
+- Re-integrated spec file into SDL distribution
+- 'name' and 'version' come from configure 
+- Some of the documentation is devel specific
+- Removed SMP support from %build - it doesn't work with libtool anyway
+
+* Tue Jan 18 2000 Hakan Tandogan <hakan@iconsult.com>
+- Hacked Mandrake sdl spec to build 1.1
+
+* Sun Dec 19 1999 John Buswell <johnb@mandrakesoft.com>
+- Build Release
+
+* Sat Dec 18 1999 John Buswell <johnb@mandrakesoft.com>
+- Add symlink for libSDL-1.0.so.0 required by sdlbomber
+- Added docs
+
+* Thu Dec 09 1999 Lenny Cartier <lenny@mandrakesoft.com>
+- v 1.0.0
+
+* Mon Nov  1 1999 Chmouel Boudjnah <chmouel@mandrakesoft.com>
+- First spec file for Mandrake distribution.
+
+# end of file

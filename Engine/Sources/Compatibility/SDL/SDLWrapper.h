@@ -21,6 +21,13 @@ typedef struct {
 	SdlProcessEventFunction processEvent;
 	SDL_Window *window;
 	int windowWidth, windowHeight;
+	void* pWindow;
+	void* pNGLClient;
+	void* pNMLClient;
+	void* pPeer;
+	void* pEventThread;
+	void* pEventMutex;
+	void* pEventQueue;
 # ifdef SAILFISHOS
 	SDL_DisplayOrientation orientation;
 	SDL_DisplayOrientation real_orientation;

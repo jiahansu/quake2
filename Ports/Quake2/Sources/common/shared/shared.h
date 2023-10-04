@@ -45,8 +45,11 @@
 #ifdef false
 #undef false
 #endif
-
+#ifndef __cplusplus
 typedef enum { false, true } qboolean;
+#else
+typedef bool qboolean;
+#endif
 typedef unsigned char byte;
 
 #ifndef NULL

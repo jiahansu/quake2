@@ -8,7 +8,9 @@ set( CMAKE_CXX_STANDARD 17 )
 set( CMAKE_CXX_STANDARD_REQUIRED ON )
 set( CMAKE_CXX_EXTENSIONS OFF )
 
+set(QUAKE2_CORE "Quake2Core")
 set(GAME_API "game")
+set(NET_QUAKE2 "NetQuake2")
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}" ${CMAKE_MODULE_PATH})
 
@@ -25,7 +27,6 @@ find_package(OpenGLES2 REQUIRED)
 set( UNIX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/backends/unix )
 set( BACKENDS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/backends )
 set( SDL_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/sdl )
-set( BACKENDS_SDL_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/backends/sdl )
 set( CLIENT_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/client )
 set( MENU_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/client/menu )
 set( REFRESH_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/client/refresh )
@@ -39,7 +40,8 @@ set( COMMON_UNZIP_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/common/u
 set( ZLIB_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Engine/External/Sources/zlib )
 set( SERVER_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/server )
 set( OPENGLES_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Engine/Sources/Compatibility/OpenGLES )
-set( COMPABILITY_SDL_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Engine/Sources/Compatibility/SDL )
+set( BACKENDS_SDL_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/backends/sdl )
+
 set( INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include)
 
 set( GAME_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/game )
@@ -47,7 +49,13 @@ set( MONSTER_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/game/monster 
 set( PLAYER_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/game/player )
 set( SAVE_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/game/savegame )
 
-file(GLOB SOURCE_FILES
+
+set( COMPABILITY_SDL_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Engine/Sources/Compatibility/SDL )
+set( COMPABILITY_NML_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Engine/Sources/Compatibility/netML )
+set( CLIENT_SDL_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/client/refresh/sdl )
+set( CLIENT_NML_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Ports/Quake2/Sources/client/refresh/nml )
+
+file(GLOB COMMON_SOURCE_FILES
     "${UNIX_SOURCE_DIR}/*.c"
     "${BACKENDS_SOURCE_DIR}/*.c"
     "${BACKENDS_SDL_SOURCE_DIR}/*.c"
@@ -63,10 +71,22 @@ file(GLOB SOURCE_FILES
     "${UNZIP_SOURCE_DIR}/*.c"
     "${SERVER_SOURCE_DIR}/*.c"
     "${OPENGLES_SOURCE_DIR}/*.c"
-    "${COMPABILITY_SDL_SOURCE_DIR}/*.c"
     "${COMMON_SHARED_SOURCE_DIR}/*.c"
     "${ZLIB_SOURCE_DIR}/*.c"
 )
+
+file(GLOB SDL_SOURCE_FILES
+  "${COMPABILITY_SDL_SOURCE_DIR}/*.c"
+  "${CLIENT_SDL_SOURCE_DIR}/*.c"
+)
+
+file(GLOB NML_SOURCE_FILES
+  "${COMPABILITY_NML_SOURCE_DIR}/*.c"
+  "${COMPABILITY_NML_SOURCE_DIR}/*.cpp"
+  "${CLIENT_NML_SOURCE_DIR}/*.c"
+  "${CLIENT_NML_SOURCE_DIR}/*.cpp"
+)
+
 
 file(GLOB GAME_SOURCE_FILES
     "${GAME_SOURCE_DIR}/*.c"
@@ -79,15 +99,19 @@ file(GLOB_RECURSE MONSTER_SOURCE_FILES
     "${MONSTER_SOURCE_DIR}/*.c"
 )
 
+add_library(${QUAKE2_CORE} STATIC ${COMMON_SOURCE_FILES})
+
 #list(APPEND ${UNIX_SOURCE_DIR} asan)
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_executable(${PROJECT_NAME} ${SDL_SOURCE_FILES})
+
+add_executable(${NET_QUAKE2} ${NML_SOURCE_FILES})
 
 add_library(${GAME_API} SHARED  ${GAME_SOURCE_FILES} ${MONSTER_SOURCE_FILES})
 SET_TARGET_PROPERTIES(${GAME_API} PROPERTIES PREFIX "")
 
 #target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
-target_include_directories(${PROJECT_NAME}
+target_include_directories(${QUAKE2_CORE}
   PUBLIC
     ${INCLUDE_DIRS}
     ${SDL2_INCLUDE_DIRS}
@@ -97,32 +121,52 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/Engine/Sources/Compatibility 
     ${PROJECT_SOURCE_DIR}/Engine/Sources/Compatibility/OpenGLES/Includes
 )
+
+set_target_properties( ${QUAKE2_CORE}
+  PROPERTIES
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
 set_target_properties( ${PROJECT_NAME}
   PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1 
-    -DEGLW_GLES2 -MP -ffast-math -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-but-set-variable 
-    -Wno-switch -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-sign-compare 
-    -Wno-incompatible-pointer-types -Wno-absolute-value -Wno-tautological-constant-out-of-range-compare 
-    -Wno-logical-not-parentheses -Wno-pointer-bool-conversion -Wno-int-conversion -Wno-duplicate-decl-specifier
-    -Wno-misleading-indentation -Wno-shift-negative-value -Wno-implicit-fallthrough 
-    -Wno-address -fPIC -fvisibility=hidden)
+set_target_properties( ${NET_QUAKE2}
+  PROPERTIES
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+list(APPEND BUILD_OPTIONS -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1 
+-DEGLW_GLES2 -MP -ffast-math -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-but-set-variable 
+-Wno-switch -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-sign-compare 
+-Wno-incompatible-pointer-types -Wno-absolute-value -Wno-tautological-constant-out-of-range-compare 
+-Wno-logical-not-parentheses -Wno-pointer-bool-conversion -Wno-int-conversion -Wno-duplicate-decl-specifier
+-Wno-misleading-indentation -Wno-shift-negative-value -Wno-implicit-fallthrough 
+-Wno-address -fPIC -fvisibility=hidden)
 
 set(CLANG_15 OFF)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
       if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")
         message("Detect CLANG 15")
         set(CLANG_15 ON)
-        target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-non-prototype -Wno-array-parameter)
+        list(APPEND BUILD_OPTIONS -Wno-deprecated-non-prototype -Wno-array-parameter)
+        #target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-non-prototype -Wno-array-parameter)
       endif()
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation)
+list(APPEND BUILD_OPTIONS -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation)
+#target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation)
 endif()
+
+target_compile_options(${QUAKE2_CORE} PRIVATE ${BUILD_OPTIONS})
+target_compile_options(${PROJECT_NAME} PRIVATE ${BUILD_OPTIONS})
+target_compile_options(${NET_QUAKE2} PRIVATE ${BUILD_OPTIONS})
+
 
   target_include_directories(${GAME_API}
     PUBLIC
@@ -139,20 +183,29 @@ if(CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
 #message(${CMAKE_CXX_COMPILER_ID})
 if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
 target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=leak,address -D__DEBUG)
+target_compile_options(${NET_QUAKE2} PRIVATE -fsanitize=leak,address -D__DEBUG)
 target_compile_options(${GAME_API} PRIVATE -fsanitize=leak,address -D__DEBUG)
 list(APPEND library asan)
 list(APPEND game_library asan)
+list(APPEND net_library asan)
 endif()
 endif()
 #add_compile_options("-O3")
 endif()
 
 list(APPEND library ${SDL2_LIBRARIES} ${OPENGLES2_LIBRARY} m EGL)
-list(APPEND game_library)
+list(APPEND net_library ${SDL2_LIBRARIES} m netGL netML EGL)
 
 target_link_libraries( ${PROJECT_NAME}
   PRIVATE
+  ${QUAKE2_CORE}
   ${library}
+)
+
+target_link_libraries( ${NET_QUAKE2}
+  PRIVATE
+  ${QUAKE2_CORE}
+  ${net_library}
 )
 
 target_link_libraries( ${GAME_API}
