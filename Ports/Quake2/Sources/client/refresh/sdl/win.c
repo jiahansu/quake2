@@ -484,3 +484,47 @@ bool R_Window_update(bool forceFlag)
 	sdlwResize(effectiveWidth, effectiveHeight);
     return false;
 }
+
+static void Gles_checkGlesError() 
+{
+	GLenum error;
+	while( (error = glGetError()) != GL_NO_ERROR )
+		R_printf(PRINT_ALL, "GLES Error: 0x%04x\n", (int)error);
+}
+
+void R_Frame_end()
+{
+// #ifdef SAILFISH_FBO
+	// static unsigned long long frame_Count = 0;
+// #endif
+	if (r_discardframebuffer->value && gl_config.discardFramebuffer)
+	{
+		static const GLenum attachements[] = { GL_DEPTH_EXT, GL_STENCIL_EXT };
+        #if defined(EGLW_GLES2)
+		gl_config.discardFramebuffer(GL_FRAMEBUFFER, 2, attachements);
+        #else
+		gl_config.discardFramebuffer(GL_FRAMEBUFFER_OES, 2, attachements);
+        #endif
+	}
+
+#ifdef SAILFISH_FBO
+	// TODO Sailfish here we should unbind our buffer and draw it on quad
+	// ============================================================================= begin
+
+	if(sailfish_fbo.quad_vertexbuffer == 0)
+		create_fbo_quad();
+
+	draw_fbo_quad();
+	// ============================================================================= ebnd
+#endif // SAILFISH_FBO
+
+	eglwSwapBuffers();
+	Gles_checkGlesError();
+	Gles_checkEglError();
+
+	// Render to our framebuffer
+#ifdef SAILFISH_FBO
+	bind_fbo();
+	// =============================================================================
+#endif
+}

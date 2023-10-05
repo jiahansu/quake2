@@ -159,8 +159,8 @@ void R_initialize();
 void R_checkChanges();
 void R_Window_toggleFullScreen();
 
-void R_printf(int print_level, char *fmt, ...);
-void R_error(int err_level, char *fmt, ...);
+void R_printf(int print_level,const char *fmt, ...);
+void R_error(int err_level,const char *fmt, ...);
 
 void R_SetPalette(const unsigned char *palette);
 

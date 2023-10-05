@@ -239,7 +239,7 @@ void Gles_checkEglError()
 		R_printf(PRINT_ALL, "EGL Error: 0x%04x\n", (int)error);
 }
 
-void Gles_checkGlesError() 
+static void Gles_checkGlesError() 
 {
 	GLenum error;
 	while( (error = glGetError()) != GL_NO_ERROR )
@@ -3857,42 +3857,7 @@ void create_fbo(GLuint w, GLuint h) {
 }
 #endif
 
-void R_Frame_end()
-{
-// #ifdef SAILFISH_FBO
-	// static unsigned long long frame_Count = 0;
-// #endif
-	if (r_discardframebuffer->value && gl_config.discardFramebuffer)
-	{
-		static const GLenum attachements[] = { GL_DEPTH_EXT, GL_STENCIL_EXT };
-        #if defined(EGLW_GLES2)
-		gl_config.discardFramebuffer(GL_FRAMEBUFFER, 2, attachements);
-        #else
-		gl_config.discardFramebuffer(GL_FRAMEBUFFER_OES, 2, attachements);
-        #endif
-	}
 
-#ifdef SAILFISH_FBO
-	// TODO Sailfish here we should unbind our buffer and draw it on quad
-	// ============================================================================= begin
-
-	if(sailfish_fbo.quad_vertexbuffer == 0)
-		create_fbo_quad();
-
-	draw_fbo_quad();
-	// ============================================================================= ebnd
-#endif // SAILFISH_FBO
-
-	eglwSwapBuffers();
-	Gles_checkGlesError();
-	Gles_checkEglError();
-
-	// Render to our framebuffer
-#ifdef SAILFISH_FBO
-	bind_fbo();
-	// =============================================================================
-#endif
-}
 
 //********************************************************************************
 // Screenshot.
@@ -4053,7 +4018,7 @@ void R_Window_toggleFullScreen()
 //********************************************************************************
 #define MAXPRINTMSG 4096
 
-void R_printf(int print_level, char *fmt, ...)
+void R_printf(int print_level,const char *fmt, ...)
 {
 	va_list argptr;
 	char msg[MAXPRINTMSG];
@@ -4072,7 +4037,7 @@ void R_printf(int print_level, char *fmt, ...)
 	}
 }
 
-void R_error(int err_level, char *fmt, ...)
+void R_error(int err_level,const char *fmt, ...)
 {
 	va_list argptr;
 	char msg[MAXPRINTMSG];

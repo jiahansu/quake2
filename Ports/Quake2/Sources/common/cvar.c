@@ -317,7 +317,7 @@ cvar_t* Cvar_FullSet(char *var_name, char *value, int flags)
 	return var;
 }
 
-void Cvar_SetValue(char *var_name, float value)
+void Cvar_SetValue(const char *var_name, float value)
 {
 	char val[32];
 

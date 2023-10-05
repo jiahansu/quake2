@@ -140,7 +140,7 @@ set_target_properties( ${NET_QUAKE2}
     CXX_EXTENSIONS OFF
 )
 
-list(APPEND BUILD_OPTIONS -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1 
+list(APPEND BUILD_OPTIONS -DBUFFER_OBJECT_USED -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1 
 -DEGLW_GLES2 -MP -ffast-math -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-but-set-variable 
 -Wno-switch -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-sign-compare 
 -Wno-incompatible-pointer-types -Wno-absolute-value -Wno-tautological-constant-out-of-range-compare 

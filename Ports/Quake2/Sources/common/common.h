@@ -427,7 +427,7 @@ cvar_t* Cvar_ForceSet(char *var_name, char *value);
 
 cvar_t* Cvar_FullSet(char *var_name, char *value, int flags);
 
-void Cvar_SetValue(char *var_name, float value);
+void Cvar_SetValue(const char *var_name, float value);
 
 /* expands value to a string and calls Cvar_Set */
 

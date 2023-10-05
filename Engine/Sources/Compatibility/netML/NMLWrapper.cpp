@@ -117,6 +117,7 @@ extern "C" bool sdlwInitialize(SdlProcessEventFunction processEvent, Uint32 flag
     sdlw->exitRequested = false;
     sdlw->defaultEventManagementEnabled = true;
 	sdlw->processEvent = processEvent;
+    sdlw->pWindow = nullptr;
     sdlw->window = NULL;
     sdlw->windowWidth = 0;
     sdlw->windowHeight = 0;
@@ -129,11 +130,11 @@ extern "C" bool sdlwInitialize(SdlProcessEventFunction processEvent, Uint32 flag
 #ifdef SAILFISHOS
     sdlw->orientation = SDL_ORIENTATION_LANDSCAPE;
 #endif
-    /*
-    if (SDL_Init(flags) < 0) {
+    
+    if (SDL_Init(SDL_INIT_TIMER|SDL_INIT_NOPARACHUTE) < 0) {
         printf("Unable to initialize SDL: %s\n", SDL_GetError());
-        goto on_error;
-    }*/
+        return true;
+    }
     
     SDL_LogSetOutputFunction(sdlwLogOutputFunction, NULL);
 //    SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Test\n");
