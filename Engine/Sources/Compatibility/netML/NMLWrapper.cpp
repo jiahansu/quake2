@@ -11,7 +11,7 @@ extern "C"{
 #include <memory>
 #include <vxo_ostream/slog.hpp>
 #include <netgl/netgl.hpp>
-#include <netML/netml.hpp>
+#include <netml/netml.hpp>
 #include <thread>
 #include <gmi_event.hpp>
 #include <mutex>
