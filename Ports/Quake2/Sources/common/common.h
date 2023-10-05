@@ -133,7 +133,7 @@ void COM_AddParm(char *parm);
 void COM_Init();
 void COM_InitArgv(int argc, char **argv);
 
-char* CopyString(char *in);
+char* CopyString(const char *in);
 
 /* ================================================================== */
 
@@ -411,13 +411,13 @@ void Cmd_ForwardToServer(void);
 
 extern cvar_t *cvar_vars;
 
-cvar_t* Cvar_Get(char *var_name, char *value, int flags);
+cvar_t* Cvar_Get(const char *var_name, char *value, int flags);
 
 /* creates the variable if it doesn't exist, or returns the existing one */
 /* if it exists, the value will not be changed, but flags will be ORed in */
 /* that allows variables to be unarchived without needing bitflags */
 
-cvar_t* Cvar_Set(char *var_name, char *value);
+cvar_t* Cvar_Set(const char *var_name, char *value);
 
 /* will create the variable if it doesn't exist */
 

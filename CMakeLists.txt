@@ -140,16 +140,19 @@ set_target_properties( ${NET_QUAKE2}
     CXX_EXTENSIONS OFF
 )
 
-list(APPEND BUILD_OPTIONS -DBUFFER_OBJECT_USED -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1 
+list(APPEND BUILD_OPTIONS -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1
 -DEGLW_GLES2 -MP -ffast-math -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-but-set-variable 
--Wno-switch -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-sign-compare 
--Wno-incompatible-pointer-types -Wno-absolute-value -Wno-tautological-constant-out-of-range-compare 
--Wno-logical-not-parentheses -Wno-pointer-bool-conversion -Wno-int-conversion -Wno-duplicate-decl-specifier
--Wno-misleading-indentation -Wno-shift-negative-value -Wno-implicit-fallthrough 
+-Wno-switch -Wno-missing-field-initializers -Wno-sign-compare 
+-Wno-logical-not-parentheses
+-Wno-misleading-indentation -Wno-shift-negative-value -Wno-implicit-fallthrough
+$<$<COMPILE_LANGUAGE:C>:-Wno-implicit-function-declaration> $<$<COMPILE_LANGUAGE:C>:-Wno-incompatible-pointer-types>
+$<$<COMPILE_LANGUAGE:C>:-Wno-absolute-value> $<$<COMPILE_LANGUAGE:C>:-Wno-int-conversion> 
+$<$<COMPILE_LANGUAGE:C>:-Wno-duplicate-decl-specifier>
 -Wno-address -fPIC -fvisibility=hidden)
 
 set(CLANG_15 OFF)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      list(APPEND BUILD_OPTIONS  -Wno-pointer-bool-conversion  -Wno-tautological-constant-out-of-range-compare)
       if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")
         message("Detect CLANG 15")
         set(CLANG_15 ON)
@@ -159,7 +162,13 @@ set(CLANG_15 OFF)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-list(APPEND BUILD_OPTIONS -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation)
+list(APPEND BUILD_OPTIONS -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation  -Wno-error=restrict -Wno-restrict  
+  )
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "12.0")
+    message("Detect GCC 12")
+    list(APPEND BUILD_OPTIONS -Wno-error=array-parameter)
+  #target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-non-prototype -Wno-array-parameter)
+  endif()
 #target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation)
 endif()
 

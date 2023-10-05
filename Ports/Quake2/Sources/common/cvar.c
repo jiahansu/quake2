@@ -28,7 +28,7 @@
 
 cvar_t *cvar_vars;
 
-static qboolean Cvar_InfoValidate(char *s)
+static qboolean Cvar_InfoValidate(const char *s)
 {
 	if (strstr(s, "\\"))
 	{
@@ -128,7 +128,7 @@ char* Cvar_CompleteVariable(char *partial)
  * If the variable already exists, the value will not be set
  * The flags will be or'ed in if the variable exists.
  */
-cvar_t* Cvar_Get(char *var_name, char *var_value, int flags)
+cvar_t* Cvar_Get(const char *var_name, char *var_value, int flags)
 {
 	cvar_t *var;
 	cvar_t **pos;
@@ -184,7 +184,7 @@ cvar_t* Cvar_Get(char *var_name, char *var_value, int flags)
 	return var;
 }
 
-cvar_t* Cvar_Set2(char *var_name, char *value, qboolean force)
+cvar_t* Cvar_Set2(const char *var_name, char *value, qboolean force)
 {
 	cvar_t *var;
 
@@ -284,7 +284,7 @@ cvar_t* Cvar_ForceSet(char *var_name, char *value)
 	return Cvar_Set2(var_name, value, true);
 }
 
-cvar_t* Cvar_Set(char *var_name, char *value)
+cvar_t* Cvar_Set(const char *var_name, char *value)
 {
 	return Cvar_Set2(var_name, value, false);
 }
