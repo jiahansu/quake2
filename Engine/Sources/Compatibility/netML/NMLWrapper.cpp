@@ -18,6 +18,10 @@ extern "C"{
 #include <mutex>
 #include <queue>
 #include <cxxopts.hpp>
+#include <gw_os_utils/signal_utils.hpp>
+#include <syscall.h>
+#include <condition_variable>
+#include <sys/wait.h>
 
 SdlwContext *sdlwContext = NULL;
 
@@ -35,6 +39,157 @@ static auto LOG = VXO::Log::getLogger("NMLWrapper");
 using namespace lan2p;
 using namespace netffi;
 using namespace netml;
+
+// Global Mutex and CV for signal handling
+static bool stop_sig_hdl;
+static std::mutex gSigHdlMutex;
+static std::condition_variable gSigHdlCV;
+static std::mutex g_sigint_flag_mtx;
+static bool g_sigint_flag = false;
+static uint32_t gSigCount = 0;
+static std::thread gSignal_thread;
+static bool gRunning = true;
+
+/************************************************************************
+ *                       Interrupt signal handlers
+ * In the beginning of the main(), we will setup the OS SIGINT handler
+ * by calling SetupSigIntCatcher(). By default, the Linux kernel will
+ * randomly pick a thread to send it's interrupt (with considerations of
+ * thir signal masks). This behavior is unwanted since it will cause
+ * difficulties for our lifecycle management.
+ * The solution is to (a)  start a thread dedicated to handling the
+ * interrupt and (b) disable SIGINT interrupts for all other threads.
+ * If we start by calling the setup (a thread is started), and set the
+ * mask pthread_sigmask in the main thread, all following threads that
+ * forked from the main thread will inherient the mask.
+ * This effectively means that only our first thread forked by
+ * SetupSigIntCatcher can catch the signal. We can control our lifecycle
+ * using a global callback function SigIntCb() in this thread.
+ * References:
+ *   https://man7.org/linux/man-pages/man7/signal.7.html
+ *   https://man7.org/linux/man-pages/man7/pthreads.7.html
+ *   https://stackoverflow.com/questions/11679568/signal-handling-with-multiple-threads-in-linux
+ ************************************************************************/
+static auto LOG_SIGHDL = VXO::Log::getLogger("DISPLAY-SIGHDL");
+using TerminateFunc = std::function<void()>;
+
+void SigIntCb(int32_t i){
+	std::lock_guard<std::mutex> lk(g_sigint_flag_mtx);
+	std::shared_ptr<VXO::Log> LOG = LOG_SIGHDL; // replace default LOG console locally
+    SLOG_INFO<<"Terminate program from terminal"<<std::endl;
+    gRunning = false;
+	g_sigint_flag = true;
+    SdlwContext *sdlw = sdlwContext;
+	if (sdlw != NULL){
+        IPeer* pPeer =  reinterpret_cast<IPeer*>(sdlw->pPeer);
+        pPeer->stop();
+        sdlw->exitRequested = true;
+        std::abort();
+    }
+    
+
+    if(gSigCount++>=3){
+        std::cout<<"Force to exit!"<<std::endl;
+        std::abort();
+    }
+}
+static void SignalHandler(int signum) {
+	std::shared_ptr<VXO::Log> LOG = LOG_SIGHDL; // replace default LOG console locally
+	std::lock_guard<std::mutex> lock(gSigHdlMutex);
+	SLOG_INFO << "SIGNAL caught: " << signum << std::endl;
+	if (signum == SIGINT){
+		SigIntCb(signum);// notify all gHD
+	}
+}
+static void SigThrd()
+{
+	std::shared_ptr<VXO::Log> LOG = LOG_SIGHDL; // replace default LOG console locally
+	std::unique_lock<std::mutex> lock(gSigHdlMutex);
+	SLOG_INFO << "Signal catcher thread TID: " << syscall(SYS_gettid) << std::endl;
+	while( !stop_sig_hdl ){
+		gSigHdlCV.wait(lock);
+	}
+	SLOG_INFO << "Signal catcher thread stopped" << std::endl;
+}
+static std::thread SetupSigIntCatcher() 
+{
+	std::shared_ptr<VXO::Log> LOG = LOG_SIGHDL; // replace default LOG console locally
+	struct sigaction sigIntHandler;
+	sigIntHandler.sa_handler = SignalHandler;
+	sigemptyset(&sigIntHandler.sa_mask);
+	sigaddset(&sigIntHandler.sa_mask, SIGINT);
+	sigIntHandler.sa_flags = SA_SIGINFO;
+	if(sigaction(SIGINT, &sigIntHandler, NULL) == -1) {
+		SLOG_WARN << "Failed at setting SIGINT action." << std::endl;
+	} else {
+		SLOG_INFO << "SIGINT action is reset to user-defined action." << std::endl;
+	}
+	{
+		std::unique_lock<std::mutex> lock(gSigHdlMutex);
+		stop_sig_hdl = false;
+	}
+	std::thread tsh(SigThrd);
+	pthread_sigmask(SIG_BLOCK, &sigIntHandler.sa_mask, NULL);
+	
+	return tsh; //std::move, but NRVO
+}
+
+// Signal segment fault
+static void onSigSegv() {
+	SLOG_ERROR << "OnSigSegv, abort." << std::endl;
+	std::abort();
+}
+
+/**********************************************************************
+ *                         terminateHandler
+ * Note: This is intended as a handler for std::terminate. This 
+ * funciton is called most likely when there's an uncaught exception. 
+ * The standard behavior for std::terminate() is to call std::abort(), 
+ * which forces the OS to kill the program. 
+ **********************************************************************/
+static void terminateHandler()
+{
+	static auto LOG = VXO::Log::getLogger("DISPLAY-TERMHDL");
+    std::exception_ptr exptr = std::current_exception();
+    std::string message = "";
+	SLOG_ERROR << "Terminated" << std::endl;
+    if (exptr != 0) {
+        // the only useful feature of std::exception_ptr is that it can be
+        // rethrown...
+        try {
+            std::rethrow_exception(exptr);
+        } catch (std::exception& ex) {
+            SLOG_ERROR << "Uncaught exception: \n\t\t"
+                       << ex.what() << std::endl;
+            message = ex.what();
+        } catch (...) {
+            SLOG_ERROR << "Unknown uncaught exception" << std::endl;
+        }
+    } else {
+        SLOG_INFO << "No exception caught during termination." << std::endl;
+    }
+#ifdef __gnu_linux__
+	
+    if(message.length()>0){
+        SLOG_ERROR << "Dumping trace" << std::endl;
+        GwOsUtils::dumpStackTrace("central_crash.txt", message);
+    }
+    
+#endif
+	SLOG_ERROR << "Abort without calling anything" << std::endl;
+	std::abort();
+}
+
+static void terminateProcess(pid_t pid){
+    int32_t status;
+    int32_t retval = kill(pid, SIGTERM);
+    waitpid(pid, &status, 0);
+    if (retval) {
+        SLOG_WARN << "Terminate failed: " << pid<< std::endl;
+    }else{
+        SLOG_INFO << "Terminate sucess: " << pid<< std::endl;
+    }
+}
 
 static void sdlwLogOutputFunction(void *userdata, int category, SDL_LogPriority priority, const char *message)
 {
@@ -114,6 +269,11 @@ extern "C" bool sdlwInitialize(SdlProcessEventFunction processEvent, Uint32 flag
     std::size_t pos;
     cxxopts::Options options("Quake2","Quake2");
 
+    gSignal_thread = std::thread(SetupSigIntCatcher());
+	std::set_terminate(terminateHandler);
+
+    GwOsUtils::registerSigSegvAction("quake2_crash.txt", onSigSegv);
+
     options.add_options()("u,displayIP", "The IP of remote display", cxxopts::value<std::string>()->default_value("127.0.0.1:2409"));
 
     auto optResult = options.parse(COM_Argc(), COM_ArgvAll());
@@ -168,6 +328,7 @@ extern "C" bool sdlwInitialize(SdlProcessEventFunction processEvent, Uint32 flag
     sdlw->pNMLClient = pNMLClient = netffi::createClient();
     sdlw->pEventMutex = new std::mutex();
     sdlw->pEventQueue = new std::queue<GMI::Event>();
+    sdlw->pEventThread = nullptr;
 
 #ifdef SAILFISHOS
     sdlw->orientation = SDL_ORIENTATION_LANDSCAPE;
@@ -220,29 +381,10 @@ extern "C" bool sdlwInitialize(SdlProcessEventFunction processEvent, Uint32 flag
                     }
                     SLOG_INFO<<"End reveiving event loop..."<<std::endl;
                 });
-                /*
-                m_Running = true;
-
-                m_pEventThread = std::make_unique<std::thread>([this](){
-                    gw::IBuffer& input = this->m_pNetPeer->session()->channel(EVENT_CHANNEL).input();
-                    Event event = {};
-
-                    while(m_Running){
-                        input>>event;
-                        if(input.isAlive()){
-                            this->updateByEvents(event);
-                        }
-                        //SLOG_INFO<<"Receive event: "<<static_cast<uint32_t>(event.type)<<std::endl;
-                    }
-                });
-                makeCurrentGLContext();
-                m_WinHandler = nmlWindowId(m_pNMLClient.get());*/
+                return false;
+            }else{
+                return true;
             }
-    
-    return false;
-    /*
-	sdlwFinalize();
-    return true;*/
 }
 
 extern "C" void sdlwFinalize() {
@@ -285,6 +427,12 @@ extern "C" void sdlwFinalize() {
     
     free(sdlw);
     sdlwContext = NULL;
+
+    stop_sig_hdl = true;
+    gSigHdlCV.notify_all();
+    if(gSignal_thread.joinable()){
+        gSignal_thread.join();
+    }
 }
 
 extern "C" bool sdlwCreateWindow(const char *windowName, int windowWidth, int windowHeight, Uint32 flags)
@@ -332,7 +480,9 @@ extern "C" void sdlwRequestExit(bool flag)
 {
 	SdlwContext *sdlw = sdlwContext;
     if (sdlw == NULL) return;
-    sdlw->exitRequested = flag;
+
+    IPeer* pPeer =  reinterpret_cast<IPeer*>(sdlw->pPeer);
+    sdlw->exitRequested = flag && pPeer!=nullptr && pPeer->isAlive();
 }
 
 extern "C" bool sdlwResize(int w, int h) {

@@ -440,7 +440,7 @@ void Cmd_TokenizeString(char *text)
 	}
 }
 
-void Cmd_AddCommand(char *cmd_name, xcommand_t function)
+void Cmd_AddCommand(const char *cmd_name, xcommand_t function)
 {
 	cmd_function_t *cmd;
 

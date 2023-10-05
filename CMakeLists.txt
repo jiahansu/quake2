@@ -139,7 +139,7 @@ set_target_properties( ${NET_QUAKE2}
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
-
+# 
 list(APPEND BUILD_OPTIONS -DBUFFER_OBJECT_USED  -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1
 -DEGLW_GLES2 -MP -ffast-math -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-but-set-variable 
 -Wno-switch -Wno-missing-field-initializers -Wno-sign-compare 
@@ -203,7 +203,7 @@ endif()
 endif()
 
 list(APPEND library ${SDL2_LIBRARIES} ${OPENGLES2_LIBRARY} m EGL)
-list(APPEND net_library ${SDL2_LIBRARIES} m netGL netML EGL cxxopts)
+list(APPEND net_library ${SDL2_LIBRARIES} m netGL netML EGL cxxopts GwSignalUtils)
 
 target_link_libraries( ${PROJECT_NAME}
   PRIVATE
