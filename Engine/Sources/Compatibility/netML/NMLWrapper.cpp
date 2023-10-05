@@ -1,5 +1,6 @@
 extern "C"{
 #include "../SDL/SDLWrapper.h"
+#include <common/common.h>
 }
 
 #include <stdio.h>
@@ -16,6 +17,7 @@ extern "C"{
 #include <gmi_event.hpp>
 #include <mutex>
 #include <queue>
+#include <cxxopts.hpp>
 
 SdlwContext *sdlwContext = NULL;
 
@@ -106,10 +108,50 @@ extern "C" bool sdlwInitialize(SdlProcessEventFunction processEvent, Uint32 flag
     IClient* pNMLClient;
     ISession* pSession;
     struct sockaddr_in dst;
-    std::string ip = "127.0.0.1";
-    uint16_t port = 2409;
-    bool b  = false;
+    std::string ip, dip;
+    uint16_t port;
+    bool b  = false, parsed;
+    std::size_t pos;
+    cxxopts::Options options("Quake2","Quake2");
+
+    options.add_options()("u,displayIP", "The IP of remote display", cxxopts::value<std::string>()->default_value("127.0.0.1:2409"));
+
+    auto optResult = options.parse(COM_Argc(), COM_ArgvAll());
+
+    dip = optResult["displayIP"].as<std::string>();
+
+    if ((pos = dip.find_first_of(':')) != std::string::npos)
+    {
+        ip = dip.substr(0, pos);
+        port = std::atoi(dip.substr(pos + 1, dip.length()).c_str());
+        if (port <= 0)
+        {
+            parsed = false;
+        }
+        else
+        {
+            parsed = true;
+        }
+    }
+    else
+    {
+        parsed = false;
+    }
+
+    if (!parsed)
+    {
+        ip = "127.0.0.1";
+        port = 2409;
+    }
+
+    SLOG_INFO << "Dst address: " << ip << ':' << port << std::endl;
+
+    dst.sin_family = AF_INET;
+    dst.sin_addr.s_addr = inet_addr(ip.c_str());
+    dst.sin_port = htons(port);
+
     sdlwFinalize();
+
     
 	SdlwContext *sdlw = reinterpret_cast<SdlwContext*>(malloc(sizeof(SdlwContext)));
 	if (sdlw == NULL) return true;

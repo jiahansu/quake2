@@ -196,13 +196,15 @@ static void Qcommon_Init(int argc, char **argv)
 
 	z_chain.next = z_chain.prev = &z_chain;
 
+	/* prepare enough of the subsystems to handle
+	   cvar and command buffer management */
+	COM_InitArgv(argc, argv);
+
 	extern bool IN_processEvent(SDL_Event *event);
 	sdlwInitialize(IN_processEvent, 0);
 	sdlwEnableDefaultEventManagement(false);
 
-	/* prepare enough of the subsystems to handle
-	   cvar and command buffer management */
-	COM_InitArgv(argc, argv);
+	
 
 	Swap_Init();
 	Cbuf_Init();

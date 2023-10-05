@@ -126,6 +126,8 @@ extern float LittleFloat(float l);
 
 int COM_Argc();
 char* COM_Argv(int arg); /* range and null checked */
+char ** COM_ArgvAll();
+
 void COM_ClearArgv(int arg);
 int COM_CheckParm(char *parm);
 void COM_AddParm(char *parm);

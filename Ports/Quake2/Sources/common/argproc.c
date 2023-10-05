@@ -65,6 +65,11 @@ char* COM_Argv(int arg)
 	return com_argv[arg];
 }
 
+char** COM_ArgvAll()
+{
+	return com_argv;
+}
+
 void COM_ClearArgv(int arg)
 {
 	if ((arg < 0) || (arg >= com_argc) || !com_argv[arg])

@@ -140,7 +140,7 @@ set_target_properties( ${NET_QUAKE2}
     CXX_EXTENSIONS OFF
 )
 
-list(APPEND BUILD_OPTIONS -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1
+list(APPEND BUILD_OPTIONS -DBUFFER_OBJECT_USED  -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1
 -DEGLW_GLES2 -MP -ffast-math -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-but-set-variable 
 -Wno-switch -Wno-missing-field-initializers -Wno-sign-compare 
 -Wno-logical-not-parentheses
@@ -203,7 +203,7 @@ endif()
 endif()
 
 list(APPEND library ${SDL2_LIBRARIES} ${OPENGLES2_LIBRARY} m EGL)
-list(APPEND net_library ${SDL2_LIBRARIES} m netGL netML EGL)
+list(APPEND net_library ${SDL2_LIBRARIES} m netGL netML EGL cxxopts)
 
 target_link_libraries( ${PROJECT_NAME}
   PRIVATE
@@ -222,9 +222,11 @@ target_link_libraries( ${GAME_API}
   ${game_library}
 )
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/baseq2)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/baseq2)
 
-add_custom_command(TARGET ${GAME_API} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${GAME_API}> ${CMAKE_CURRENT_BINARY_DIR}/baseq2/)
-#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_BINARY_DIR}/bin/)
+add_custom_command(TARGET ${GAME_API} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${GAME_API}> ${CMAKE_BINARY_DIR}/bin/baseq2/)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_BINARY_DIR}/bin/)
+add_custom_command(TARGET ${NET_QUAKE2} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${NET_QUAKE2}> ${CMAKE_BINARY_DIR}/bin/)
 
-#install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS ${NET_QUAKE2}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
