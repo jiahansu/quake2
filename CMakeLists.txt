@@ -15,6 +15,33 @@ set(NET_QUAKE2 "NetQuake2")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}" ${CMAKE_MODULE_PATH})
 
 
+list(APPEND SDL2_EXTEND "")
+
+if(ARMV8_DEV STREQUAL "RPI4")
+    list( APPEND SDL2_EXTEND
+            SDL2_ttf
+            SDL2_image
+        )
+elseif(ARMV8_DEV STREQUAL "SA8295")
+    list( APPEND SDL2_EXTEND
+        SDL2_ttf::SDL2_ttf
+        SDL2_image::SDL2_image
+    )
+    find_package(SDL2_image REQUIRED)
+    if(SDL2_image_FOUND)
+        message(STATUS "SDL2 image is founded")
+    endif()
+
+    find_package(SDL2_ttf REQUIRED)
+    if(SDL2_ttf_FOUND)
+        message(STATUS "SDL2 ttf is founded")
+    endif()
+else()
+    list( APPEND SDL2_EXTEND
+        SDL2_ttf
+        SDL2_image
+    )
+endif()
 find_package(SDL2 REQUIRED)
 if(SDL2_FOUND)
     message(STATUS "[SDL2_INCLUDES: ${SDL2_INCLUDE_DIRS}]")
@@ -141,7 +168,7 @@ set_target_properties( ${NET_QUAKE2}
 )
 # 
 list(APPEND BUILD_OPTIONS -DBUFFER_OBJECT_USED  -DARCH=\"i386\" -DOSTYPE=\"Linux\" -DNOUNCRYPT -DZIP -D_GNU_SOURCE=1
--DEGLW_GLES2 -MP -ffast-math -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-but-set-variable 
+-DEGLW_GLES2  -fPIC $<$<COMPILE_LANGUAGE:C>:-std=c99> -ffast-math -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-unused-but-set-variable 
 -Wno-switch -Wno-missing-field-initializers -Wno-sign-compare 
 -Wno-logical-not-parentheses
 -Wno-misleading-indentation -Wno-shift-negative-value -Wno-implicit-fallthrough
@@ -162,7 +189,8 @@ set(CLANG_15 OFF)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-list(APPEND BUILD_OPTIONS -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation  -Wno-error=restrict -Wno-restrict  
+list(APPEND BUILD_OPTIONS -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation  
+  -Wno-error=restrict -Wno-restrict  $<$<COMPILE_LANGUAGE:C>:-Wno-error=discarded-qualifiers> $<$<COMPILE_LANGUAGE:C>:-Wno-error=stringop-truncation>  
   )
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "12.0")
     message("Detect GCC 12")
@@ -202,8 +230,8 @@ endif()
 #add_compile_options("-O3")
 endif()
 
-list(APPEND library ${SDL2_LIBRARIES} ${OPENGLES2_LIBRARY} m EGL)
-list(APPEND net_library ${SDL2_LIBRARIES} m netGL netML EGL cxxopts GwSignalUtils)
+list(APPEND library ${SDL2_LIBRARIES} ${SDL2_EXTEND} ${OPENGLES2_LIBRARY} m EGL)
+list(APPEND net_library ${SDL2_LIBRARIES} ${SDL2_EXTEND} m netGL netML EGL cxxopts GwSignalUtils)
 
 target_link_libraries( ${PROJECT_NAME}
   PRIVATE

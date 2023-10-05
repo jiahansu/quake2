@@ -5,7 +5,7 @@ extern "C"{
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <unistd.h> 
 #include <netffi/netffi.hpp>
 #include <lan2p/lan2p.hpp>
 #include <netffi/client.hpp>
