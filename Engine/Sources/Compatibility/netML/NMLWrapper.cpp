@@ -176,8 +176,13 @@ static void terminateHandler()
     }
     
 #endif
-	SLOG_ERROR << "Abort without calling anything" << std::endl;
-	std::abort();
+    SdlwContext *sdlw = sdlwContext;
+	if (sdlw != NULL){
+        IPeer* pPeer =  reinterpret_cast<IPeer*>(sdlw->pPeer);
+        pPeer->stop();
+    }
+	//SLOG_ERROR << "Abort without calling anything" << std::endl;
+	//std::abort();
 }
 
 static void terminateProcess(pid_t pid){
