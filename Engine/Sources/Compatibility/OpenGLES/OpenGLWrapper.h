@@ -98,9 +98,9 @@ void oglwClear(GLbitfield mask);
 // Drawing.
 //--------------------------------------------------------------------------------
 typedef struct oglwVertex_ {
-    float position[4];
-    float color[4];
-    float texCoord[2][4];
+    float position[3];
+    uint8_t color[4];
+    float texCoord[1][2];
 } OglwVertex;
 
 void oglwPointSize(float size);
@@ -152,10 +152,13 @@ static inline void Vertex_set3(float *t, float x, float y, float z)
 {
     t[0]=x; t[1]=y; t[2]=z; t[3]=1.0f;
 }
+static inline uint8_t intC(float f){
+    return (f >= 1.0 ? 255 : (f <= 0.0 ? 0 : (int)floor(f * 256.0)));
+}
 
-static inline void Vertex_set4(float *t, float x, float y, float z, float w)
+static inline void Vertex_set4(uint8_t *t, float x, float y, float z, float w)
 {
-    t[0]=x; t[1]=y; t[2]=z; t[3]=w;
+    t[0]=intC(x); t[1]=intC(y); t[2]=intC(z); t[3]=intC(w);
 }
 
 static inline OglwVertex* AddVertex3D(OglwVertex *v, float px, float py, float pz)
@@ -184,13 +187,13 @@ static inline OglwVertex* AddVertex3D_CT1(OglwVertex *v, float px, float py, flo
 
 static inline OglwVertex* AddVertex3D_T2(OglwVertex *v, float px, float py, float pz, float tx0, float ty0, float tx1, float ty1)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2(v->texCoord[0], tx0, ty0); Vertex_set2(v->texCoord[1], tx1, ty1); v++;
+    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2(v->texCoord[0], tx0, ty0); //Vertex_set2(v->texCoord[1], tx1, ty1); v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_CT2(OglwVertex *v, float px, float py, float pz, float r, float g, float b, float a, float tx0, float ty0, float tx1, float ty1)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2(v->texCoord[0], tx0, ty0); Vertex_set2(v->texCoord[1], tx1, ty1); v++;
+    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2(v->texCoord[0], tx0, ty0); //Vertex_set2(v->texCoord[1], tx1, ty1); v++;
     return v;
 }
 

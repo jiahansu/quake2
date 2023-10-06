@@ -133,21 +133,21 @@ static void oglwCheckError()
 #if defined(EGLW_GLES2)
 
 static const char *oglwVertexShaderSources =
-"precision highp float;\n"
+"precision mediump float;\n"
 "uniform mat4 u_transformation;\n"
-"attribute vec4 a_position;\n"
+"attribute vec3 a_position;\n"
 "attribute vec4 a_color;\n"
-"attribute vec4 a_texcoord0;\n"
-"attribute vec4 a_texcoord1;\n"
+"attribute vec2 a_texcoord0;\n"
+"attribute vec2 a_texcoord1;\n"
 "varying vec4 v_color;\n"
-"varying vec4 v_texcoord0;\n"
-"varying vec4 v_texcoord1;\n"
+"varying vec2 v_texcoord0;\n"
+"varying vec2 v_texcoord1;\n"
 "void main()\n"
 "{\n"
 "   v_color = a_color;\n"
 "   v_texcoord0 = a_texcoord0;\n"
 "   v_texcoord1 = a_texcoord1;\n"
-"   gl_Position = a_position * u_transformation;\n"
+"   gl_Position = vec4(a_position,1.0) * u_transformation;\n"
 "}\n"
 ;
 
@@ -161,8 +161,8 @@ static const char *oglwFragmentShaderSources =
 "uniform sampler2D s_tex1;\n"
 "uniform float u_alphaThreshold;\n"
 "varying vec4 v_color;\n"
-"varying vec4 v_texcoord0;\n"
-"varying vec4 v_texcoord1;\n"
+"varying vec2 v_texcoord0;\n"
+"varying vec2 v_texcoord1;\n"
 "void main()\n"
 "{\n"
 "	vec4 color = v_color;\n"
@@ -423,19 +423,19 @@ bool oglwCreate() {
         oglw->currentVertex.position[0]=0.0f;
         oglw->currentVertex.position[1]=0.0f;
         oglw->currentVertex.position[2]=0.0f;
-        oglw->currentVertex.position[3]=1.0f;
+        //oglw->currentVertex.position[3]=1.0f;
         oglw->currentVertex.color[0]=1.0f;
         oglw->currentVertex.color[1]=1.0f;
         oglw->currentVertex.color[2]=1.0f;
         oglw->currentVertex.color[3]=1.0f;
         oglw->currentVertex.texCoord[0][0]=0.0f;
         oglw->currentVertex.texCoord[0][1]=0.0f;
-        oglw->currentVertex.texCoord[0][2]=0.0f;
-        oglw->currentVertex.texCoord[0][3]=1.0f;
+        //oglw->currentVertex.texCoord[0][2]=0.0f;
+        //oglw->currentVertex.texCoord[0][3]=1.0f;
         oglw->currentVertex.texCoord[1][0]=0.0f;
         oglw->currentVertex.texCoord[1][1]=0.0f;
-        oglw->currentVertex.texCoord[1][2]=0.0f;
-        oglw->currentVertex.texCoord[1][3]=1.0f;
+        //oglw->currentVertex.texCoord[1][2]=0.0f;
+        //oglw->currentVertex.texCoord[1][3]=1.0f;
         
         oglw->verticesCapacity=0;
         oglw->verticesLength=0;
@@ -1022,7 +1022,7 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glVertexPointer(4, GL_FLOAT, sizeof(OglwVertex), p);
         glEnableClientState(GL_VERTEX_ARRAY);
         #else
-        glVertexAttribPointer(oglw->a_position, 4, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_position, 3, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_position);
         #endif
     }
@@ -1036,7 +1036,7 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glColorPointer(4, GL_FLOAT, sizeof(OglwVertex), p);
         glEnableClientState(GL_COLOR_ARRAY);
         #else
-        glVertexAttribPointer(oglw->a_color, 4, GL_FLOAT, GL_TRUE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_color);
         #endif
     }
@@ -1051,10 +1051,11 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glTexCoordPointer(4, GL_FLOAT, sizeof(OglwVertex), p);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         #else
-        glVertexAttribPointer(oglw->a_texcoord0, 4, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_texcoord0, 2, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_texcoord0);
         #endif
     }
+    /*
     if (!oglw->arrays[Array_TexCoord1].enabled) {
         #if defined(BUFFER_OBJECT_USED)
 		void *p = (void*)((void*)&oglw->vertices[0].texCoord[1][0] - (void*)&oglw->vertices[0]);
@@ -1067,10 +1068,10 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glClientActiveTexture(GL_TEXTURE0);
         #else
-        glVertexAttribPointer(oglw->a_texcoord1, 4, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_texcoord1, 2, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_texcoord1);
         #endif
-    }
+    }*/
 }
 
 static void oglwCleanupArrays(OpenGLWrapper *oglw) {
@@ -1301,7 +1302,7 @@ void oglwUpdateState() {
                 if (unit == 0)
                     glUniform1i(oglw->u_tex0Enabled, tu->texturingEnabledRequested);
                 else
-                    glUniform1i(oglw->u_tex1Enabled, tu->texturingEnabledRequested);
+                    glUniform1i(oglw->u_tex1Enabled, false/*tu->texturingEnabledRequested*/);
                 #endif
             }
 //            if (tu->texturingEnabled)
@@ -1314,7 +1315,7 @@ void oglwUpdateState() {
                     if (unit == 0)
                         glUniform1i(oglw->u_tex0BlendingEnabled, tu->blending == GL_MODULATE);
                     else
-                        glUniform1i(oglw->u_tex1BlendingEnabled, tu->blending == GL_MODULATE);
+                        glUniform1i(oglw->u_tex1BlendingEnabled, false/*tu->blending == GL_MODULATE*/);
                     #endif
                 }
                 if (tu->texture!=tu->textureRequested) {
@@ -1610,48 +1611,48 @@ void oglwVertex3fv(const GLfloat *v) {
 void oglwGetColor(GLfloat *v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
     GLfloat *c = oglw->currentVertex.color;
-    v[0] = c[0];
-    v[1] = c[1];
-    v[2] = c[2];
-    v[3] = c[3];
+    v[0] = c[0]*(1.0f/255.0f);
+    v[1] = c[1]*(1.0f/255.0f);;
+    v[2] = c[2]*(1.0f/255.0f);;
+    v[3] = c[3]*(1.0f/255.0f);;
 }
 
 void oglwColor3f(GLfloat r, GLfloat g, GLfloat b) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.color[0]=r;
-    oglw->currentVertex.color[1]=g;
-    oglw->currentVertex.color[2]=b;
+    oglw->currentVertex.color[0]=intC(r);
+    oglw->currentVertex.color[1]=intC(g);
+    oglw->currentVertex.color[2]=intC(b);
 }
 
 void oglwColor3fv(const GLfloat *v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.color[0]=v[0];
-    oglw->currentVertex.color[1]=v[1];
-    oglw->currentVertex.color[2]=v[2];
+    oglw->currentVertex.color[0]=intC(v[0]);
+    oglw->currentVertex.color[1]=intC(v[1]);
+    oglw->currentVertex.color[2]=intC(v[2]);
 }
 
 void oglwColor4ubv(const GLubyte *v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    const float n=1.0f/255.0f; 
-    oglw->currentVertex.color[0]=v[0]*n;
-    oglw->currentVertex.color[1]=v[1]*n;
-    oglw->currentVertex.color[2]=v[2]*n;
+    //const float n=1.0f/255.0f; 
+    oglw->currentVertex.color[0]=v[0];
+    oglw->currentVertex.color[1]=v[1];
+    oglw->currentVertex.color[2]=v[2];
 }
 
 void oglwColor4f(GLfloat r, GLfloat g, GLfloat b, GLfloat a) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.color[0]=r;
-    oglw->currentVertex.color[1]=g;
-    oglw->currentVertex.color[2]=b;
-    oglw->currentVertex.color[3]=a;
+    oglw->currentVertex.color[0]=intC(r);
+    oglw->currentVertex.color[1]=intC(g);
+    oglw->currentVertex.color[2]=intC(b);
+    oglw->currentVertex.color[3]=intC(a);
 }
 
 void oglwColor4fv(const GLfloat *v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.color[0]=v[0];
-    oglw->currentVertex.color[1]=v[1];
-    oglw->currentVertex.color[2]=v[2];
-    oglw->currentVertex.color[3]=v[3];
+    oglw->currentVertex.color[0]=intC(v[0]);
+    oglw->currentVertex.color[1]=intC(v[1]);
+    oglw->currentVertex.color[2]=intC(v[2]);
+    oglw->currentVertex.color[3]=intC(v[3]);
 }
 
 void oglwTexCoord2f(GLfloat u, GLfloat v) {
