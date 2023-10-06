@@ -128,5 +128,7 @@ void R_Frame_end()
 
 
 	nglSwapBuffers(pHandler->winId);
+	#ifdef __DEBUG
 	Gles_checkGlesError();
+	#endif
 }

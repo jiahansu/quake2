@@ -1009,7 +1009,7 @@ void oglwColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *poi
 static void oglwSetupArrays(OpenGLWrapper *oglw) {
     #if defined(BUFFER_OBJECT_USED)
     glBindBuffer(GL_ARRAY_BUFFER, oglw->bufferId);
-    glBufferData(GL_ARRAY_BUFFER, oglw->verticesCapacity * sizeof(OglwVertex), NULL, GL_DYNAMIC_DRAW); // Should be GL_STREAM_DRAW but only for GLES 2.
+    glBufferData(GL_ARRAY_BUFFER, oglw->verticesCapacity * sizeof(OglwVertex), NULL, GL_STREAM_DRAW); // Should be GL_STREAM_DRAW but only for GLES 2.
     #endif
 
     if (!oglw->arrays[Array_Position].enabled) {
@@ -1231,7 +1231,8 @@ void oglwEnd() {
         oglwUpdateState();
 
         #if defined(BUFFER_OBJECT_USED)
-        glBufferSubData(GL_ARRAY_BUFFER, 0, oglw->verticesLength * sizeof(OglwVertex), oglw->vertices);
+        glBufferData(GL_ARRAY_BUFFER, oglw->verticesLength * sizeof(OglwVertex), oglw->vertices, GL_STREAM_DRAW);
+        //glBufferSubData(GL_ARRAY_BUFFER, 0, oglw->verticesLength * sizeof(OglwVertex), oglw->vertices);
         #endif
         
         if (oglw->indicesLength>0) {
