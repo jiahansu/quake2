@@ -94,16 +94,33 @@ void oglwEnableDepthWrite(bool flag);
 //--------------------------------------------------------------------------------
 void oglwClear(GLbitfield mask);
 
-#define FP16 int16_t
+//#define POS_USING_FLOAT16
+#define TC_USING_FLOAT16
+
+#ifdef POS_USING_FLOAT16
+#define float_pos uint16_t
+#define OGL_POS_TYPE GL_HALF_FLOAT_OES
+#else
+#define float_pos float
+#define OGL_POS_TYPE GL_FLOAT
+#endif
+
+#ifdef TC_USING_FLOAT16
+#define float_tc uint16_t
+#define OGL_TC_TYPE GL_HALF_FLOAT_OES
+#else
+#define float_pos float
+#define OGL_TC_TYPE GL_FLOAT
+#endif
 //--------------------------------------------------------------------------------
 // Drawing.
 //--------------------------------------------------------------------------------
 #pragma pack(push)
 #pragma pack(1) 
 typedef struct oglwVertex_ {
-    float position[3];
+    float_pos position[3];
     uint8_t color[4];
-    FP16 texCoord[1][2];
+    float_tc texCoord[1][2];
 } OglwVertex;
 #pragma pack(pop) 
 
@@ -153,34 +170,50 @@ static inline void Vertex_set2(float *t, float x, float y)
     t[0]=x; t[1]=y; t[2]=0.0f;/* t[3]=1.0f*/;
 }
 
-static inline FP16 FloatToFloat16( float value )
-{
-    uint32_t input;
-    memcpy(&input, &value, sizeof(float));
-
-    uint32_t sign = (input >> 31) & 0x1;
-    uint32_t exponent = (input >> 23) & 0xFF;
-    uint32_t fraction = input & 0x7FFFFF;
-
-    if (exponent == 0xFF) { // Inf or NaN
-        exponent = 0x1F;
-    } else if (exponent > 0x70) {
-        exponent = (exponent - 127) + 15;
-        if (exponent > 0x1E) {  // Overflow
-            exponent = 0x1F;
-            fraction = 0;  // Inf
-        }
-    } else if (exponent <= 0x70) { // Underflow
-        return 0;
-    }
-
-    uint16_t output = (sign << 15) | (exponent << 10) | (fraction >> 13);
-    return output;
+static inline uint32_t as_uint(const float x) {
+    return *(uint32_t*)&x;
 }
 
-static inline void Vertex_set2TC(FP16 *t, float x, float y)
+static inline uint16_t FloatToFloat16( float x)
 {
-    t[0]=FloatToFloat16(x); t[1]=FloatToFloat16(y); /*t[2]=0.0f; t[3]=1.0f*/;
+
+    const uint32_t b = as_uint(x)+0x00001000; // round-to-nearest-even: add last bit after truncated mantissa
+    const uint32_t e = (b&0x7F800000)>>23; // exponent
+    const uint32_t m = b&0x007FFFFF; // mantissa; in line below: 0x007FF000 = 0x00800000-0x00001000 = decimal indicator flag - initial rounding
+    return (b&0x80000000)>>16 | (e>112)*((((e-112)<<10)&0x7C00)|m>>13) | ((e<113)&(e>101))*((((0x007FF000+m)>>(125-e))+1)>>1) | (e>143)*0x7FFF; // sign : normalized : denormalized : saturate
+}
+
+static inline float_pos PosFloatToFloat16( float x)
+{
+    #ifdef POS_USING_FLOAT16
+    return FloatToFloat16(x);
+    #else
+    return x;
+    #endif
+}
+
+static inline float_pos TCFloatToFloat16( float x)
+{
+    #ifdef TC_USING_FLOAT16
+    return FloatToFloat16(x);
+    #else
+    return x;
+    #endif
+}
+
+static inline void Vertex_set2TC(float_tc*t, float x, float y)
+{
+    t[0]=TCFloatToFloat16(x); t[1]=TCFloatToFloat16(y); /*t[2]=0.0f; t[3]=1.0f*/;
+}
+
+static inline void Vertex_set2P(float_pos *t, float x, float y)
+{
+    t[0]=PosFloatToFloat16(x); t[1]=PosFloatToFloat16(y); t[2]=PosFloatToFloat16(0.0f);/* t[3]=1.0f*/;
+}
+
+static inline void Vertex_set3P(float_pos *t, float x, float y, float z)
+{
+    t[0]=PosFloatToFloat16(x); t[1]=PosFloatToFloat16(y); t[2]=PosFloatToFloat16(z);/* t[3]=1.0f*/;
 }
 
 static inline void Vertex_set3(float *t, float x, float y, float z)
@@ -200,64 +233,64 @@ static inline void Vertex_set4(uint8_t *t, float x, float y, float z, float w)
 
 static inline OglwVertex* AddVertex3D(OglwVertex *v, float px, float py, float pz)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); v++;
+    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_C(OglwVertex *v, float px, float py, float pz, float r, float g, float b, float a)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); v++;
+    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_T1(OglwVertex *v, float px, float py, float pz, float tx, float ty)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tx, ty); v++;
+    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tx, ty); v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_CT1(OglwVertex *v, float px, float py, float pz, float r, float g, float b, float a, float tx, float ty)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tx, ty); v++;
+    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tx, ty); v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_T2(OglwVertex *v, float px, float py, float pz, float tx0, float ty0, float tx1, float ty1)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tx0, ty0); /*Vertex_set2(v->texCoord[1], tx1, ty1);*/ v++;
+    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tx0, ty0); /*Vertex_set2(v->texCoord[1], tx1, ty1);*/ v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_CT2(OglwVertex *v, float px, float py, float pz, float r, float g, float b, float a, float tx0, float ty0, float tx1, float ty1)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tx0, ty0); /*Vertex_set2(v->texCoord[1], tx1, ty1);*/ v++;
+    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tx0, ty0); /*Vertex_set2(v->texCoord[1], tx1, ty1);*/ v++;
     return v;
 }
 
 static inline OglwVertex* AddQuad2D_C(OglwVertex *v, float px0, float py0, float px1, float py1, float r, float g, float b, float a)
 {
-    Vertex_set2(v->position, px0, py0); Vertex_set4(v->color, r, g, b, a); v++;
-    Vertex_set2(v->position, px1, py0); Vertex_set4(v->color, r, g, b, a); v++;
-    Vertex_set2(v->position, px1, py1); Vertex_set4(v->color, r, g, b, a); v++;
-    Vertex_set2(v->position, px0, py1); Vertex_set4(v->color, r, g, b, a); v++;
+    Vertex_set2P(v->position, px0, py0); Vertex_set4(v->color, r, g, b, a); v++;
+    Vertex_set2P(v->position, px1, py0); Vertex_set4(v->color, r, g, b, a); v++;
+    Vertex_set2P(v->position, px1, py1); Vertex_set4(v->color, r, g, b, a); v++;
+    Vertex_set2P(v->position, px0, py1); Vertex_set4(v->color, r, g, b, a); v++;
     return v;
 }
 
 static inline OglwVertex* AddQuad2D_T1(OglwVertex *v, float px0, float py0, float px1, float py1, float tpx0, float tpy0, float tpx1, float tpy1)
 {
-    Vertex_set2(v->position, px0, py0); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx0, tpy0); v++;
-    Vertex_set2(v->position, px1, py0); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx1, tpy0); v++;
-    Vertex_set2(v->position, px1, py1); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx1, tpy1); v++;
-    Vertex_set2(v->position, px0, py1); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx0, tpy1); v++;
+    Vertex_set2P(v->position, px0, py0); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx0, tpy0); v++;
+    Vertex_set2P(v->position, px1, py0); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx1, tpy0); v++;
+    Vertex_set2P(v->position, px1, py1); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx1, tpy1); v++;
+    Vertex_set2P(v->position, px0, py1); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx0, tpy1); v++;
     return v;
 }
 
 static inline OglwVertex* AddQuad2D_CT1(OglwVertex *v, float px0, float py0, float px1, float py1, float r, float g, float b, float a, float tpx0, float tpy0, float tpx1, float tpy1)
 {
-    Vertex_set2(v->position, px0, py0); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx0, tpy0); v++;
-    Vertex_set2(v->position, px1, py0); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx1, tpy0); v++;
-    Vertex_set2(v->position, px1, py1); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx1, tpy1); v++;
-    Vertex_set2(v->position, px0, py1); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx0, tpy1); v++;
+    Vertex_set2P(v->position, px0, py0); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx0, tpy0); v++;
+    Vertex_set2P(v->position, px1, py0); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx1, tpy0); v++;
+    Vertex_set2P(v->position, px1, py1); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx1, tpy1); v++;
+    Vertex_set2P(v->position, px0, py1); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx0, tpy1); v++;
     return v;
 }
 

@@ -420,9 +420,9 @@ bool oglwCreate() {
 		if (oglw==NULL) goto on_error;
         l_openGLWrapper = oglw;
         
-        oglw->currentVertex.position[0]=0.0f;
-        oglw->currentVertex.position[1]=0.0f;
-        oglw->currentVertex.position[2]=0.0f;
+        oglw->currentVertex.position[0]=PosFloatToFloat16(0.0f);
+        oglw->currentVertex.position[1]=PosFloatToFloat16(0.0f);
+        oglw->currentVertex.position[2]=PosFloatToFloat16(0.0f);
         //oglw->currentVertex.position[3]=1.0f;
         oglw->currentVertex.color[0]=1.0f;
         oglw->currentVertex.color[1]=1.0f;
@@ -1022,7 +1022,7 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glVertexPointer(4, GL_FLOAT, sizeof(OglwVertex), p);
         glEnableClientState(GL_VERTEX_ARRAY);
         #else
-        glVertexAttribPointer(oglw->a_position, 3, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_position, 3, OGL_POS_TYPE, GL_FALSE, sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_position);
         #endif
     }
@@ -1051,7 +1051,7 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glTexCoordPointer(4, GL_FLOAT, sizeof(OglwVertex), p);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         #else
-        glVertexAttribPointer(oglw->a_texcoord0, 2, GL_HALF_FLOAT_OES, GL_FALSE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_texcoord0, 2, OGL_TC_TYPE, GL_FALSE, sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_texcoord0);
         #endif
     }
@@ -1580,31 +1580,31 @@ static void olgwAddVertex(OpenGLWrapper *oglw) {
 
 void oglwVertex2f(GLfloat x, GLfloat y) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.position[0]=x;
-    oglw->currentVertex.position[1]=y;
+    oglw->currentVertex.position[0]=PosFloatToFloat16(x);
+    oglw->currentVertex.position[1]=PosFloatToFloat16(y);
     olgwAddVertex(oglw);
 }
 
 void oglwVertex2i(GLint x, GLint y) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.position[0]=(GLfloat)x;
-    oglw->currentVertex.position[1]=(GLfloat)y;
+    oglw->currentVertex.position[0]=PosFloatToFloat16((GLfloat)x);
+    oglw->currentVertex.position[1]=PosFloatToFloat16((GLfloat)y);
     olgwAddVertex(oglw);
 }
 
 void oglwVertex3f(GLfloat x, GLfloat y, GLfloat z) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.position[0]=x;
-    oglw->currentVertex.position[1]=y;
-    oglw->currentVertex.position[2]=z;
+    oglw->currentVertex.position[0]=PosFloatToFloat16(x);
+    oglw->currentVertex.position[1]=PosFloatToFloat16(y);
+    oglw->currentVertex.position[2]=PosFloatToFloat16(z);
     olgwAddVertex(oglw);
 }
 
 void oglwVertex3fv(const GLfloat *v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.position[0]=v[0];
-    oglw->currentVertex.position[1]=v[1];
-    oglw->currentVertex.position[2]=v[2];
+    oglw->currentVertex.position[0]=PosFloatToFloat16(v[0]);
+    oglw->currentVertex.position[1]=PosFloatToFloat16(v[1]);
+    oglw->currentVertex.position[2]=PosFloatToFloat16(v[2]);
     olgwAddVertex(oglw);
 }
 
@@ -1657,13 +1657,13 @@ void oglwColor4fv(const GLfloat *v) {
 
 void oglwTexCoord2f(GLfloat u, GLfloat v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.texCoord[0][0]=FloatToFloat16(u);
-    oglw->currentVertex.texCoord[0][1]=FloatToFloat16(v);
+    oglw->currentVertex.texCoord[0][0]=TCFloatToFloat16(u);
+    oglw->currentVertex.texCoord[0][1]=TCFloatToFloat16(v);
 }
 
 void oglwMultiTexCoord2f(GLenum unit, GLfloat u, GLfloat v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
     int unitIndex = unit - GL_TEXTURE0;
-    oglw->currentVertex.texCoord[unitIndex][0]=FloatToFloat16(u);
-    oglw->currentVertex.texCoord[unitIndex][1]=FloatToFloat16(v);
+    oglw->currentVertex.texCoord[unitIndex][0]=TCFloatToFloat16(u);
+    oglw->currentVertex.texCoord[unitIndex][1]=TCFloatToFloat16(v);
 }
