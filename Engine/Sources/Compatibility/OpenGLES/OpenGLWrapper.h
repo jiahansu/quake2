@@ -94,14 +94,19 @@ void oglwEnableDepthWrite(bool flag);
 //--------------------------------------------------------------------------------
 void oglwClear(GLbitfield mask);
 
+#define FP16 int16_t
 //--------------------------------------------------------------------------------
 // Drawing.
 //--------------------------------------------------------------------------------
+#pragma pack(push)
+#pragma pack(1) 
 typedef struct oglwVertex_ {
     float position[3];
     uint8_t color[4];
-    float texCoord[1][2];
+    FP16 texCoord[1][2];
 } OglwVertex;
+#pragma pack(pop) 
+
 
 void oglwPointSize(float size);
 
@@ -145,7 +150,37 @@ void oglwMultiTexCoord2f(GLenum unit, GLfloat u, GLfloat v);
 
 static inline void Vertex_set2(float *t, float x, float y)
 {
-    t[0]=x; t[1]=y; t[2]=0.0f; t[3]=1.0f;
+    t[0]=x; t[1]=y; t[2]=0.0f;/* t[3]=1.0f*/;
+}
+
+static inline FP16 FloatToFloat16( float value )
+{
+    uint32_t input;
+    memcpy(&input, &value, sizeof(float));
+
+    uint32_t sign = (input >> 31) & 0x1;
+    uint32_t exponent = (input >> 23) & 0xFF;
+    uint32_t fraction = input & 0x7FFFFF;
+
+    if (exponent == 0xFF) { // Inf or NaN
+        exponent = 0x1F;
+    } else if (exponent > 0x70) {
+        exponent = (exponent - 127) + 15;
+        if (exponent > 0x1E) {  // Overflow
+            exponent = 0x1F;
+            fraction = 0;  // Inf
+        }
+    } else if (exponent <= 0x70) { // Underflow
+        return 0;
+    }
+
+    uint16_t output = (sign << 15) | (exponent << 10) | (fraction >> 13);
+    return output;
+}
+
+static inline void Vertex_set2TC(FP16 *t, float x, float y)
+{
+    t[0]=FloatToFloat16(x); t[1]=FloatToFloat16(y); /*t[2]=0.0f; t[3]=1.0f*/;
 }
 
 static inline void Vertex_set3(float *t, float x, float y, float z)
@@ -155,6 +190,8 @@ static inline void Vertex_set3(float *t, float x, float y, float z)
 static inline uint8_t intC(float f){
     return (f >= 1.0 ? 255 : (f <= 0.0 ? 0 : (int)floor(f * 256.0)));
 }
+
+
 
 static inline void Vertex_set4(uint8_t *t, float x, float y, float z, float w)
 {
@@ -175,25 +212,25 @@ static inline OglwVertex* AddVertex3D_C(OglwVertex *v, float px, float py, float
 
 static inline OglwVertex* AddVertex3D_T1(OglwVertex *v, float px, float py, float pz, float tx, float ty)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2(v->texCoord[0], tx, ty); v++;
+    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tx, ty); v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_CT1(OglwVertex *v, float px, float py, float pz, float r, float g, float b, float a, float tx, float ty)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2(v->texCoord[0], tx, ty); v++;
+    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tx, ty); v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_T2(OglwVertex *v, float px, float py, float pz, float tx0, float ty0, float tx1, float ty1)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2(v->texCoord[0], tx0, ty0); //Vertex_set2(v->texCoord[1], tx1, ty1); v++;
+    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tx0, ty0); /*Vertex_set2(v->texCoord[1], tx1, ty1);*/ v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_CT2(OglwVertex *v, float px, float py, float pz, float r, float g, float b, float a, float tx0, float ty0, float tx1, float ty1)
 {
-    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2(v->texCoord[0], tx0, ty0); //Vertex_set2(v->texCoord[1], tx1, ty1); v++;
+    Vertex_set3(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tx0, ty0); /*Vertex_set2(v->texCoord[1], tx1, ty1);*/ v++;
     return v;
 }
 
@@ -208,19 +245,19 @@ static inline OglwVertex* AddQuad2D_C(OglwVertex *v, float px0, float py0, float
 
 static inline OglwVertex* AddQuad2D_T1(OglwVertex *v, float px0, float py0, float px1, float py1, float tpx0, float tpy0, float tpx1, float tpy1)
 {
-    Vertex_set2(v->position, px0, py0); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2(v->texCoord[0], tpx0, tpy0); v++;
-    Vertex_set2(v->position, px1, py0); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2(v->texCoord[0], tpx1, tpy0); v++;
-    Vertex_set2(v->position, px1, py1); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2(v->texCoord[0], tpx1, tpy1); v++;
-    Vertex_set2(v->position, px0, py1); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2(v->texCoord[0], tpx0, tpy1); v++;
+    Vertex_set2(v->position, px0, py0); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx0, tpy0); v++;
+    Vertex_set2(v->position, px1, py0); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx1, tpy0); v++;
+    Vertex_set2(v->position, px1, py1); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx1, tpy1); v++;
+    Vertex_set2(v->position, px0, py1); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tpx0, tpy1); v++;
     return v;
 }
 
 static inline OglwVertex* AddQuad2D_CT1(OglwVertex *v, float px0, float py0, float px1, float py1, float r, float g, float b, float a, float tpx0, float tpy0, float tpx1, float tpy1)
 {
-    Vertex_set2(v->position, px0, py0); Vertex_set4(v->color, r, g, b, a); Vertex_set2(v->texCoord[0], tpx0, tpy0); v++;
-    Vertex_set2(v->position, px1, py0); Vertex_set4(v->color, r, g, b, a); Vertex_set2(v->texCoord[0], tpx1, tpy0); v++;
-    Vertex_set2(v->position, px1, py1); Vertex_set4(v->color, r, g, b, a); Vertex_set2(v->texCoord[0], tpx1, tpy1); v++;
-    Vertex_set2(v->position, px0, py1); Vertex_set4(v->color, r, g, b, a); Vertex_set2(v->texCoord[0], tpx0, tpy1); v++;
+    Vertex_set2(v->position, px0, py0); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx0, tpy0); v++;
+    Vertex_set2(v->position, px1, py0); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx1, tpy0); v++;
+    Vertex_set2(v->position, px1, py1); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx1, tpy1); v++;
+    Vertex_set2(v->position, px0, py1); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tpx0, tpy1); v++;
     return v;
 }
 

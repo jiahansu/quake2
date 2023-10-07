@@ -428,12 +428,12 @@ bool oglwCreate() {
         oglw->currentVertex.color[1]=1.0f;
         oglw->currentVertex.color[2]=1.0f;
         oglw->currentVertex.color[3]=1.0f;
-        oglw->currentVertex.texCoord[0][0]=0.0f;
-        oglw->currentVertex.texCoord[0][1]=0.0f;
+        oglw->currentVertex.texCoord[0][0]=0;
+        oglw->currentVertex.texCoord[0][1]=0;
         //oglw->currentVertex.texCoord[0][2]=0.0f;
         //oglw->currentVertex.texCoord[0][3]=1.0f;
-        oglw->currentVertex.texCoord[1][0]=0.0f;
-        oglw->currentVertex.texCoord[1][1]=0.0f;
+        oglw->currentVertex.texCoord[1][0]=0;
+        oglw->currentVertex.texCoord[1][1]=0;
         //oglw->currentVertex.texCoord[1][2]=0.0f;
         //oglw->currentVertex.texCoord[1][3]=1.0f;
         
@@ -1051,7 +1051,7 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glTexCoordPointer(4, GL_FLOAT, sizeof(OglwVertex), p);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         #else
-        glVertexAttribPointer(oglw->a_texcoord0, 2, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_texcoord0, 2, GL_HALF_FLOAT_OES, GL_FALSE, sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_texcoord0);
         #endif
     }
@@ -1657,13 +1657,13 @@ void oglwColor4fv(const GLfloat *v) {
 
 void oglwTexCoord2f(GLfloat u, GLfloat v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
-    oglw->currentVertex.texCoord[0][0]=u;
-    oglw->currentVertex.texCoord[0][1]=v;
+    oglw->currentVertex.texCoord[0][0]=FloatToFloat16(u);
+    oglw->currentVertex.texCoord[0][1]=FloatToFloat16(v);
 }
 
 void oglwMultiTexCoord2f(GLenum unit, GLfloat u, GLfloat v) {
     OpenGLWrapper *oglw = l_openGLWrapper;
     int unitIndex = unit - GL_TEXTURE0;
-    oglw->currentVertex.texCoord[unitIndex][0]=u;
-    oglw->currentVertex.texCoord[unitIndex][1]=v;
+    oglw->currentVertex.texCoord[unitIndex][0]=FloatToFloat16(u);
+    oglw->currentVertex.texCoord[unitIndex][1]=FloatToFloat16(v);
 }
