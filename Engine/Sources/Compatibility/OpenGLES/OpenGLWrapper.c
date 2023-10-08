@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #define OGLW_PI 3.14159265359f
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 //#define BUFFER_OBJECT_USED
 
@@ -93,6 +94,8 @@ struct OpenGLWrapper_ {
     int indicesCapacity;
     int indicesLength;
     GLushort *indices;
+    GLubyte  *bindices;
+    GLushort maxIndex;
     
     #if defined(BUFFER_OBJECT_USED)
     GLuint bufferId;
@@ -444,6 +447,8 @@ bool oglwCreate() {
         oglw->indicesCapacity=0;
         oglw->indicesLength=0;
         oglw->indices=NULL;
+        oglw->bindices=NULL;
+        oglw->maxIndex = 0;
         
         #if defined(BUFFER_OBJECT_USED)
         oglw->bufferId = 0;
@@ -562,6 +567,10 @@ void oglwDestroy() {
 
 		free(oglw->vertices);
 		free(oglw->indices);
+        if(oglw->bindices!=NULL){
+            free(oglw->bindices);
+        }
+        
 		free(oglw);
 		l_openGLWrapper=NULL;
 	}
@@ -1128,6 +1137,7 @@ static void oglwCleanupArrays(OpenGLWrapper *oglw) {
 static bool oglwReserveIndices(OpenGLWrapper *oglw, int indicesCapacityMin) {
     if (indicesCapacityMin < 0) return true;
     int indicesCapacity=oglw->indicesCapacity;
+    int32_t oldIndicesCapacity = indicesCapacity;
     if (indicesCapacity<indicesCapacityMin) {
         indicesCapacity=indicesCapacityMin;
         oglw->indicesCapacity=indicesCapacity;
@@ -1140,6 +1150,17 @@ static bool oglwReserveIndices(OpenGLWrapper *oglw, int indicesCapacityMin) {
         }
         free(indices);
         oglw->indices=indicesNew;
+        {
+            GLubyte *indices = oglw->bindices;
+            GLubyte *indicesNew = malloc(sizeof(GLubyte)*indicesCapacity);
+            if (indicesNew==NULL) goto on_error;
+            int indicesLength=oldIndicesCapacity;
+            for (int i=0; i<indicesLength; i++) {
+                indicesNew[i]=indices[i];
+            }
+            free(indices);
+            oglw->bindices=indicesNew;
+        }
     }
     return false;
 on_error:
@@ -1147,6 +1168,9 @@ on_error:
     oglw->indicesCapacity=0;
     oglw->indicesLength=0;
     oglw->indices=NULL;
+
+    free(oglw->bindices);
+    oglw->bindices=NULL;
     return true;
 }
 
@@ -1212,14 +1236,18 @@ void oglwEnd() {
                 } else {
                     oglw->indicesLength=indicesNb;
                     GLushort *indices=oglw->indices;
+                    GLubyte *bindex = oglw->bindices;
                     for (int i=0; i<quadNb; i++, indices+=6) {
                         int index=i<<2;
-                        indices[0]=index+0;
-                        indices[1]=index+1;
-                        indices[2]=index+2;
-                        indices[3]=index+0;
-                        indices[4]=index+2;
-                        indices[5]=index+3;
+                        bindex[0] = indices[0]=index+0;
+                        bindex[1] = indices[1]=index+1;
+                        bindex[2] = indices[2]=index+2;
+                        bindex[3] = indices[3]=index+0;
+                        bindex[4] = indices[4]=index+2;
+                        bindex[5] = indices[5]=index+3;
+                        oglw->maxIndex=  MAX(oglw->maxIndex, MAX(indices[0], MAX(indices[1], MAX(indices[2], MAX(indices[3]
+                            , MAX(indices[4], indices[5]))))));
+                        bindex+=6;
                     }
                 }
             }
@@ -1237,7 +1265,12 @@ void oglwEnd() {
         #endif
         
         if (oglw->indicesLength>0) {
-            glDrawElements(primitive, oglw->indicesLength, GL_UNSIGNED_SHORT, oglw->indices);
+            if(oglw->maxIndex>255 || true){
+                glDrawElements(primitive, oglw->indicesLength, GL_UNSIGNED_SHORT, oglw->indices);
+            }else{
+                glDrawElements(primitive, oglw->indicesLength, GL_UNSIGNED_BYTE, oglw->bindices);
+            }
+            
         } else {
             glDrawArrays(primitive, 0, oglw->verticesLength);
         }
@@ -1398,6 +1431,7 @@ void oglwReset() {
     oglw->beginFlag=false;
     oglw->verticesLength=0;
     oglw->indicesLength=0;
+    oglw->maxIndex = 0;
 }
 
 bool oglwIsEmpty() {
@@ -1440,14 +1474,17 @@ OglwVertex* oglwAllocateLineStrip(int vertexNb) {
     int lineNb = vertexNb-1;
     if (lineNb <= 0)
         return NULL;
-
+    int32_t indeicesLen = oglw->indicesLength;
     GLushort *index = oglwAllocateIndex(lineNb*2);
+    GLubyte *bindex = &oglw->bindices[indeicesLen];
     if (index == NULL) goto on_error;
     int vertexLengthLast = oglw->verticesLength;
     for (int ti = 0; ti < lineNb; ti++, index+=2) {
         int vi = vertexLengthLast + ti;
-        index[0] = vi;
-        index[1] = vi + 1;
+        bindex[0] = index[0] = vi;
+        bindex[1] = index[1] = vi + 1;
+        oglw->maxIndex=  MAX(oglw->maxIndex, MAX(index[0], index[1]));
+        bindex+=2;
     }
 
     OglwVertex *v = oglwAllocateVertex(vertexNb);
@@ -1465,16 +1502,23 @@ OglwVertex* oglwAllocateLineLoop(int vertexNb) {
     if (lineNb <= 0)
         return NULL;
 
+    int32_t indeicesLen = oglw->indicesLength;
     GLushort *index = oglwAllocateIndex((lineNb+1)*2);
+    GLubyte *bindex = &oglw->bindices[indeicesLen];
     if (index == NULL) goto on_error;
     int vertexLengthLast = oglw->verticesLength;
     for (int ti = 0; ti < lineNb; ti++, index+=2) {
         int vi = vertexLengthLast + ti;
-        index[0] = vi;
-        index[1] = vi + 1;
+        bindex[0] = index[0] = vi;
+        bindex[1] = index[1] = vi + 1;
+
+        oglw->maxIndex=  MAX(oglw->maxIndex, MAX(index[0], index[1]));
+        bindex+=2;
     }
-    index[0] = vertexLengthLast + lineNb;
-    index[1] = vertexLengthLast;
+    bindex[0] = index[0] = vertexLengthLast + lineNb;
+    bindex[1] = index[1] = vertexLengthLast;
+
+    oglw->maxIndex=  MAX(oglw->maxIndex, MAX(index[0], index[1]));
 
     OglwVertex *v = oglwAllocateVertex(vertexNb);
     if (v == NULL) goto on_error;
@@ -1492,16 +1536,22 @@ OglwVertex* oglwAllocateQuad(int vertexNb) {
         return NULL;
 
     int vertexLengthLast = oglw->verticesLength;
+    int32_t indeicesLen = oglw->indicesLength;
     GLushort *index = oglwAllocateIndex(quadNb*6);
+    GLubyte *bindex = &oglw->bindices[indeicesLen];
     if (index == NULL) goto on_error;
     for (int qi = 0; qi < quadNb; qi++, index+=6) {
         int vi = vertexLengthLast + (qi<<2);
-        index[0] = vi + 0;
-        index[1] = vi + 1;
-        index[2] = vi + 2;
-        index[3] = vi + 0;
-        index[4] = vi + 2;
-        index[5] = vi + 3;
+        bindex[0] =index[0] = vi + 0;
+        bindex[1] =index[1] = vi + 1;
+        bindex[2] =index[2] = vi + 2;
+        bindex[3] =index[3] = vi + 0;
+        bindex[4] =index[4] = vi + 2;
+        bindex[5] =index[5] = vi + 3;
+
+        oglw->maxIndex=  MAX(oglw->maxIndex, MAX(index[0], MAX(index[1], MAX(index[2], MAX(index[3]
+            , MAX(index[4], index[5]))))));
+        bindex+=6;
     }
 
     OglwVertex *v = oglwAllocateVertex(vertexNb);
@@ -1520,13 +1570,18 @@ OglwVertex* oglwAllocateTriangleFan(int vertexNb) {
         return NULL;
 
     int vertexLengthLast = oglw->verticesLength;
+    int32_t indeicesLen = oglw->indicesLength;
     GLushort *index = oglwAllocateIndex(triangleNb*3);
+    GLubyte *bindex = &oglw->bindices[indeicesLen];
     if (index == NULL) goto on_error;
     for (int ti = 0; ti < triangleNb; ti++, index+=3) {
         int vi = vertexLengthLast + ti;
-        index[0] = vertexLengthLast;
-        index[1] = vi + 1;
-        index[2] = vi + 2;
+        bindex[0] =index[0] = vertexLengthLast;
+        bindex[1] =index[1] = vi + 1;
+        bindex[2] =index[2] = vi + 2;
+
+        oglw->maxIndex=  MAX(oglw->maxIndex, MAX(index[0], MAX(index[1], index[2]) ));
+        bindex += 3;
     }
 
     OglwVertex *v = oglwAllocateVertex(vertexNb);
@@ -1543,17 +1598,20 @@ OglwVertex* oglwAllocateTriangleStrip(int vertexNb) {
     int triangleNb = vertexNb-2;
     if (triangleNb <= 0)
         return NULL;
-
+    int32_t indeicesLen = oglw->indicesLength;
     GLushort *index = oglwAllocateIndex(triangleNb*3);
+    GLubyte *bindex = &oglw->bindices[indeicesLen];
     if (index == NULL) goto on_error;
     int vertexLengthLast = oglw->verticesLength;
     int swap = 0;
     for (int ti = 0; ti < triangleNb; ti++, index+=3) {
         int vi = vertexLengthLast + ti;
-        index[0] = vi;
-        index[1] = vi + 1 + swap;
-        index[2] = vi + 2 - swap;
+        bindex[0] =index[0] = vi;
+        bindex[1] =index[1] = vi + 1 + swap;
+        bindex[2] =index[2] = vi + 2 - swap;
         swap ^= 1;
+        oglw->maxIndex=  MAX(oglw->maxIndex, MAX(index[0], MAX(index[1], index[2]) ));
+        bindex+=3;
     }
 
     OglwVertex *v = oglwAllocateVertex(vertexNb);

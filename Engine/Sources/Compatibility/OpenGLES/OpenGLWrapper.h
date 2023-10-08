@@ -109,7 +109,7 @@ void oglwClear(GLbitfield mask);
 #define float_tc uint16_t
 #define OGL_TC_TYPE GL_HALF_FLOAT_OES
 #else
-#define float_pos float
+#define float_tc float
 #define OGL_TC_TYPE GL_FLOAT
 #endif
 //--------------------------------------------------------------------------------
@@ -192,7 +192,7 @@ static inline float_pos PosFloatToFloat16( float x)
     #endif
 }
 
-static inline float_pos TCFloatToFloat16( float x)
+static inline float_tc TCFloatToFloat16( float x)
 {
     #ifdef TC_USING_FLOAT16
     return FloatToFloat16(x);
