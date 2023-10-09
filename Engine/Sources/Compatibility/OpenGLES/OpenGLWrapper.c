@@ -1265,7 +1265,7 @@ void oglwEnd() {
         #endif
         
         if (oglw->indicesLength>0) {
-            if(oglw->maxIndex>255 || true){
+            if(oglw->maxIndex>255){
                 glDrawElements(primitive, oglw->indicesLength, GL_UNSIGNED_SHORT, oglw->indices);
             }else{
                 glDrawElements(primitive, oglw->indicesLength, GL_UNSIGNED_BYTE, oglw->bindices);
