@@ -11,6 +11,7 @@
 #endif
 
 #include <stdbool.h>
+#include <math.h>
 
 //--------------------------------------------------------------------------------
 // Compatibility constants.
@@ -94,11 +95,16 @@ void oglwEnableDepthWrite(bool flag);
 //--------------------------------------------------------------------------------
 void oglwClear(GLbitfield mask);
 
-//#define POS_USING_FLOAT16
+#define POS_USING_FLOAT16
 #define TC_USING_FLOAT16
 
 #ifdef POS_USING_FLOAT16
+#ifdef __aarch64__ 
+#define float_pos __fp16
+#else
 #define float_pos uint16_t
+#endif
+
 #define OGL_POS_TYPE GL_HALF_FLOAT_OES
 #else
 #define float_pos float
@@ -106,7 +112,11 @@ void oglwClear(GLbitfield mask);
 #endif
 
 #ifdef TC_USING_FLOAT16
+#ifdef __aarch64__ 
+#define float_tc __fp16
+#else
 #define float_tc uint16_t
+#endif
 #define OGL_TC_TYPE GL_HALF_FLOAT_OES
 #else
 #define float_tc float
@@ -170,10 +180,16 @@ static inline void Vertex_set2(float *t, float x, float y)
     t[0]=x; t[1]=y; t[2]=0.0f;/* t[3]=1.0f*/;
 }
 
+
+
+#ifdef __aarch64__ 
+static inline __fp16 FloatToFloat16( float x){
+    return x;
+}
+#else
 static inline uint32_t as_uint(const float x) {
     return *(uint32_t*)&x;
 }
-
 static inline uint16_t FloatToFloat16( float x)
 {
 
@@ -182,6 +198,9 @@ static inline uint16_t FloatToFloat16( float x)
     const uint32_t m = b&0x007FFFFF; // mantissa; in line below: 0x007FF000 = 0x00800000-0x00001000 = decimal indicator flag - initial rounding
     return (b&0x80000000)>>16 | (e>112)*((((e-112)<<10)&0x7C00)|m>>13) | ((e<113)&(e>101))*((((0x007FF000+m)>>(125-e))+1)>>1) | (e>143)*0x7FFF; // sign : normalized : denormalized : saturate
 }
+#endif
+
+
 
 static inline float_pos PosFloatToFloat16( float x)
 {
@@ -221,7 +240,7 @@ static inline void Vertex_set3(float *t, float x, float y, float z)
     t[0]=x; t[1]=y; t[2]=z; t[3]=1.0f;
 }
 static inline uint8_t intC(float f){
-    return (f >= 1.0 ? 255 : (f <= 0.0 ? 0 : (int)floor(f * 256.0)));
+    return (f >= 1.0 ? 255 : (f <= 0.0 ? 0 : (int)floorf(f * 256.0f)));
 }
 
 

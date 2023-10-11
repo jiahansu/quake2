@@ -136,7 +136,7 @@ static void oglwCheckError()
 #if defined(EGLW_GLES2)
 
 static const char *oglwVertexShaderSources =
-"precision mediump float;\n"
+"precision highp float;\n"
 "uniform mat4 u_transformation;\n"
 "attribute vec3 a_position;\n"
 "attribute vec4 a_color;\n"
@@ -435,8 +435,8 @@ bool oglwCreate() {
         oglw->currentVertex.texCoord[0][1]=0;
         //oglw->currentVertex.texCoord[0][2]=0.0f;
         //oglw->currentVertex.texCoord[0][3]=1.0f;
-        oglw->currentVertex.texCoord[1][0]=0;
-        oglw->currentVertex.texCoord[1][1]=0;
+        //oglw->currentVertex.texCoord[1][0]=0;
+        //oglw->currentVertex.texCoord[1][1]=0;
         //oglw->currentVertex.texCoord[1][2]=0.0f;
         //oglw->currentVertex.texCoord[1][3]=1.0f;
         
