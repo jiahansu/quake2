@@ -128,9 +128,9 @@ void oglwClear(GLbitfield mask);
 #pragma pack(push)
 #pragma pack(1) 
 typedef struct oglwVertex_ {
-    float_pos position[3];
+    float_pos position[4];
     uint8_t color[4];
-    float_tc texCoord[1][2];
+    float_tc texCoord[2][2];
 } OglwVertex;
 #pragma pack(pop) 
 
@@ -276,13 +276,13 @@ static inline OglwVertex* AddVertex3D_CT1(OglwVertex *v, float px, float py, flo
 
 static inline OglwVertex* AddVertex3D_T2(OglwVertex *v, float px, float py, float pz, float tx0, float ty0, float tx1, float ty1)
 {
-    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tx0, ty0); /*Vertex_set2(v->texCoord[1], tx1, ty1);*/ v++;
+    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, 1.0f, 1.0f, 1.0f, 1.0f); Vertex_set2TC(v->texCoord[0], tx0, ty0); Vertex_set2TC(v->texCoord[1], tx1, ty1); v++;
     return v;
 }
 
 static inline OglwVertex* AddVertex3D_CT2(OglwVertex *v, float px, float py, float pz, float r, float g, float b, float a, float tx0, float ty0, float tx1, float ty1)
 {
-    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tx0, ty0); /*Vertex_set2(v->texCoord[1], tx1, ty1);*/ v++;
+    Vertex_set3P(v->position, px, py, pz); Vertex_set4(v->color, r, g, b, a); Vertex_set2TC(v->texCoord[0], tx0, ty0); Vertex_set2TC(v->texCoord[1], tx1, ty1); v++;
     return v;
 }
 

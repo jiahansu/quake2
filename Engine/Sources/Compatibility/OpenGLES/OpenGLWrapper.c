@@ -138,7 +138,7 @@ static void oglwCheckError()
 static const char *oglwVertexShaderSources =
 "precision highp float;\n"
 "uniform mat4 u_transformation;\n"
-"attribute vec3 a_position;\n"
+"attribute vec4 a_position;\n"
 "attribute vec4 a_color;\n"
 "attribute vec2 a_texcoord0;\n"
 "attribute vec2 a_texcoord1;\n"
@@ -150,7 +150,7 @@ static const char *oglwVertexShaderSources =
 "   v_color = a_color;\n"
 "   v_texcoord0 = a_texcoord0;\n"
 "   v_texcoord1 = a_texcoord1;\n"
-"   gl_Position = vec4(a_position,1.0) * u_transformation;\n"
+"   gl_Position = vec4(a_position.xyz,1.0) * u_transformation;\n"
 "}\n"
 ;
 
@@ -435,8 +435,8 @@ bool oglwCreate() {
         oglw->currentVertex.texCoord[0][1]=0;
         //oglw->currentVertex.texCoord[0][2]=0.0f;
         //oglw->currentVertex.texCoord[0][3]=1.0f;
-        //oglw->currentVertex.texCoord[1][0]=0;
-        //oglw->currentVertex.texCoord[1][1]=0;
+        oglw->currentVertex.texCoord[1][0]=0;
+        oglw->currentVertex.texCoord[1][1]=0;
         //oglw->currentVertex.texCoord[1][2]=0.0f;
         //oglw->currentVertex.texCoord[1][3]=1.0f;
         
@@ -1031,7 +1031,7 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glVertexPointer(4, GL_FLOAT, sizeof(OglwVertex), p);
         glEnableClientState(GL_VERTEX_ARRAY);
         #else
-        glVertexAttribPointer(oglw->a_position, 3, OGL_POS_TYPE, GL_FALSE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_position, 4, OGL_POS_TYPE, GL_FALSE, sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_position);
         #endif
     }
@@ -1064,7 +1064,6 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glEnableVertexAttribArray(oglw->a_texcoord0);
         #endif
     }
-    /*
     if (!oglw->arrays[Array_TexCoord1].enabled) {
         #if defined(BUFFER_OBJECT_USED)
 		void *p = (void*)((void*)&oglw->vertices[0].texCoord[1][0] - (void*)&oglw->vertices[0]);
@@ -1077,10 +1076,10 @@ static void oglwSetupArrays(OpenGLWrapper *oglw) {
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glClientActiveTexture(GL_TEXTURE0);
         #else
-        glVertexAttribPointer(oglw->a_texcoord1, 2, GL_FLOAT, GL_FALSE, sizeof(OglwVertex), p);
+        glVertexAttribPointer(oglw->a_texcoord1, 2, OGL_TC_TYPE, GL_FALSE,  sizeof(OglwVertex), p);
         glEnableVertexAttribArray(oglw->a_texcoord1);
         #endif
-    }*/
+    }
 }
 
 static void oglwCleanupArrays(OpenGLWrapper *oglw) {
@@ -1335,7 +1334,7 @@ void oglwUpdateState() {
                 if (unit == 0)
                     glUniform1i(oglw->u_tex0Enabled, tu->texturingEnabledRequested);
                 else
-                    glUniform1i(oglw->u_tex1Enabled, false/*tu->texturingEnabledRequested*/);
+                    glUniform1i(oglw->u_tex1Enabled, tu->texturingEnabledRequested);
                 #endif
             }
 //            if (tu->texturingEnabled)
@@ -1348,7 +1347,7 @@ void oglwUpdateState() {
                     if (unit == 0)
                         glUniform1i(oglw->u_tex0BlendingEnabled, tu->blending == GL_MODULATE);
                     else
-                        glUniform1i(oglw->u_tex1BlendingEnabled, false/*tu->blending == GL_MODULATE*/);
+                        glUniform1i(oglw->u_tex1BlendingEnabled, tu->blending == GL_MODULATE);
                     #endif
                 }
                 if (tu->texture!=tu->textureRequested) {
@@ -1359,13 +1358,13 @@ void oglwUpdateState() {
         }
         unit^=1;
     }
-    /*
+    
     unit = oglw->textureUnitRequested;
     if (oglw->textureUnit!=unit) {
         oglw->textureUnit=unit;
         glActiveTexture(GL_TEXTURE0 + unit);
     }
-    */
+    
     
     if (oglw->blendingEnabled!=oglw->blendingEnabledRequested) {
         oglw->blendingEnabled=oglw->blendingEnabledRequested;
