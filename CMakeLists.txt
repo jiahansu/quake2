@@ -189,10 +189,11 @@ set(CLANG_15 OFF)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-list(APPEND BUILD_OPTIONS -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation  
-  -Wno-error=restrict -Wno-restrict  $<$<COMPILE_LANGUAGE:C>:-Wno-error=discarded-qualifiers> $<$<COMPILE_LANGUAGE:C>:-Wno-error=stringop-truncation>  
+list(APPEND BUILD_OPTIONS -Wno-format-overflow -Wno-bool-compare -Wno-builtin-declaration-mismatch -Wno-format-truncation 
+  -Wno-strict-aliasing -Wno-error=restrict -Wno-restrict 
+  $<$<COMPILE_LANGUAGE:C>:-Wno-error=discarded-qualifiers> $<$<COMPILE_LANGUAGE:C>:-Wno-error=stringop-truncation>  
   )
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "12.0")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "11.0")
     message("Detect GCC 12")
     list(APPEND BUILD_OPTIONS -Wno-error=array-parameter)
   #target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-non-prototype -Wno-array-parameter)
@@ -231,7 +232,7 @@ endif()
 endif()
 
 list(APPEND library ${SDL2_LIBRARIES} ${SDL2_EXTEND} ${OPENGLES2_LIBRARY} m EGL)
-list(APPEND net_library ${SDL2_LIBRARIES} ${SDL2_EXTEND} m netGL netML EGL cxxopts GwSignalUtils)
+list(APPEND net_library ${SDL2_LIBRARIES} ${SDL2_EXTEND} m ZonalDisplayCore EGL cxxopts)
 
 target_link_libraries( ${PROJECT_NAME}
   PRIVATE
@@ -256,5 +257,6 @@ add_custom_command(TARGET ${GAME_API} POST_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_BINARY_DIR}/bin/)
 add_custom_command(TARGET ${NET_QUAKE2} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${NET_QUAKE2}> ${CMAKE_BINARY_DIR}/bin/)
 
-install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-install(TARGETS ${NET_QUAKE2}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+#install(TARGETS ${GAME_API}  RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin/baseq2/)
+#install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+#install(TARGETS ${NET_QUAKE2}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
